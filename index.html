@@ -172,3 +172,274 @@
             for (let p of platforms) {
                 ctx.fillStyle = p.spring ? '#ff00cc' : '#00cc77';
                 ctx.beginPath();
+                ctx.ellipse(p.x + p.width/2, p.y + p.height/2, p.width/2 + 2, p.height/2 + 4, 0, 0, Math.PI*2);
+                ctx.fill();
+                ctx.strokeStyle = '#008844'; ctx.lineWidth = 2.5;
+                ctx.beginPath(); ctx.moveTo(p.x+8,p.y+6); ctx.quadraticCurveTo(p.x+p.width/2,p.y+10,p.x+p.width-8,p.y+5); ctx.stroke();
+                ctx.fillStyle = 'rgba(255,255,255,0.6)'; ctx.fillRect(p.x+6,p.y+3,p.width-18,4);
+            }
+            ctx.shadowBlur = 0;
+        }
+
+        function drawPowerUps() {
+            ctx.shadowBlur = 18;
+            for (let pu of powerUps) {
+                if (pu.type === 'coin') {
+                    ctx.shadowColor = '#ffff00';
+                    ctx.fillStyle = '#ffff00';
+                    ctx.beginPath(); ctx.arc(pu.x,pu.y,11,0,Math.PI*2); ctx.fill();
+                    ctx.fillStyle = '#000'; ctx.font = 'bold 16px system-ui'; ctx.textAlign = 'center';
+                    ctx.fillText('$',pu.x,pu.y+6);
+                } else if (pu.type === 'jetpack') {
+                    ctx.shadowColor = '#ff4400';
+                    ctx.fillStyle = '#ff4400';
+                    ctx.fillRect(pu.x-9,pu.y-16,18,30);
+                    ctx.fillStyle = '#00ffff';
+                    ctx.fillRect(pu.x-13,pu.y-10,26,9);
+                } else if (pu.type === 'magnet') {
+                    ctx.shadowColor = '#00ffff';
+                    ctx.fillStyle = '#00ffff';
+                    ctx.fillRect(pu.x-13,pu.y-13,26,26);
+                    ctx.fillStyle = '#000';
+                    ctx.font = 'bold 22px system-ui';
+                    ctx.fillText('🧲',pu.x,pu.y+8);
+                }
+            }
+            ctx.shadowBlur = 0;
+        }
+
+        function update() {
+            if (!gameRunning || gameState !== 'playing') return;
+            gameTime++;
+
+            let targetVx = 0;
+            if (touchLeft || keys['ArrowLeft'] || keys['a']) targetVx = -1;
+            if (touchRight || keys['ArrowRight'] || keys['d']) targetVx = 1;
+            player.vx = player.vx * 0.82 + targetVx * player.speed * 0.18;
+            player.x += player.vx;
+            if (player.x + player.width < 0) player.x = canvas.width;
+            if (player.x > canvas.width) player.x = -player.width;
+
+            if (jetpackTime > 0) {
+                player.dy = -8.5;
+                jetpackTime--;
+                if (Math.random() < 0.6) createParticles(player.x+24, player.y+45, 3, '#00ffff');
+            } else {
+                player.dy += gravity;
+            }
+            player.y += player.dy;
+
+            for (let p of platforms) {
+                if (player.dy > 0 && player.x + player.width > p.x && player.x < p.x + p.width &&
+                    player.y + player.height > p.y && player.y + player.height - player.dy <= p.y + 8) {
+                    player.y = p.y - player.height;
+                    player.dy = p.spring ? -18.5 : -14.2;
+                    createParticles(p.x + p.width/2, p.y, 14, p.spring ? '#ff00cc' : '#00ff9d');
+                }
+            }
+
+            if (player.y < 240 && player.dy < 0) {
+                const scroll = 240 - player.y;
+                player.y = 240;
+                for (let p of platforms) p.y += scroll;
+                for (let pu of powerUps) pu.y += scroll;
+                score += Math.floor(scroll * 0.55);
+            }
+
+            const gap = 70 + Math.min(38, score / 950);
+            while (platforms[platforms.length - 1].y > 30) {
+                const lastY = platforms[platforms.length - 1].y;
+                const springChance = Math.min(0.12, 0.18 - score / 24000);
+                platforms.push({
+                    x: Math.random() * (canvas.width - 75) + 15,
+                    y: lastY - gap - Math.random() * 14,
+                    width: 56,
+                    height: 16,
+                    spring: Math.random() < springChance
+                });
+            }
+            if (platforms[0].y > canvas.height + 40) platforms.shift();
+
+            if (Math.random() < 0.0048 && powerUps.length < 2 && score > 900) {
+                const types = ['coin','jetpack','magnet'];
+                powerUps.push({
+                    x: Math.random() * (canvas.width - 50) + 25,
+                    y: -40,
+                    type: types[Math.floor(Math.random()*types.length)],
+                    vy: 1.4
+                });
+            }
+
+            for (let i = powerUps.length - 1; i >= 0; i--) {
+                const pu = powerUps[i];
+                pu.y += pu.vy;
+
+                const dx = player.x + player.width/2 - pu.x;
+                const dy = player.y + player.height/2 - pu.y;
+                const dist = Math.sqrt(dx*dx + dy*dy);
+
+                if (magnetTime > 0 && pu.type === 'coin' && dist < 140) {
+                    pu.x += dx * 0.28;
+                    pu.y += dy * 0.28;
+                }
+
+                if (player.x < pu.x + 22 && player.x + player.width > pu.x - 22 &&
+                    player.y < pu.y + 22 && player.y + player.height > pu.y - 22) {
+                    if (pu.type === 'coin') {
+                        score += magnetTime > 0 ? 380 : 180;
+                        combo++;
+                        comboTimer = 90;
+                        createParticles(pu.x, pu.y, 20, '#ffff00');
+                    } else if (pu.type === 'jetpack') {
+                        jetpackTime = 115;
+                        createParticles(pu.x, pu.y, 28, '#00ffff');
+                    } else if (pu.type === 'magnet') {
+                        magnetTime = 280;
+                        createParticles(pu.x, pu.y, 40, '#00ffff');
+                    }
+                    powerUps.splice(i, 1);
+                }
+                if (pu.y > canvas.height + 30) powerUps.splice(i, 1);
+            }
+
+            if (comboTimer > 0) comboTimer--;
+            else combo = 0;
+
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.vx; p.y += p.vy; p.vy += 0.18; p.life--;
+                if (p.life <= 0) particles.splice(i, 1);
+            }
+
+            if (player.y > canvas.height + 50) {
+                gameRunning = false;
+                if (score > highScore) highScore = Math.floor(score);
+                localStorage.setItem('pmushHigh', highScore);
+                document.getElementById('finalScore').textContent = Math.floor(score);
+                document.getElementById('shareText').textContent = `To the Moon! ${username || 'Sporeholder'} scored ${Math.floor(score)}! 🚀`;
+                document.getElementById('gameOver').style.display = 'block';
+            }
+
+            document.getElementById('score').textContent = Math.floor(score);
+        }
+
+        function draw() {
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+            drawBackground();
+            if (gameState === 'playing') {
+                drawPlatforms();
+                drawPowerUps();
+                drawPlayer();
+
+                for (let p of particles) {
+                    ctx.globalAlpha = p.life / 32;
+                    ctx.fillStyle = p.color;
+                    ctx.fillRect(p.x, p.y, 5, 5);
+                }
+                ctx.globalAlpha = 1;
+            }
+        }
+
+        function gameLoop() {
+            if (gameState === 'playing') update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function checkUsernameAndPlay() {
+            if (username) {
+                showPlayerSelect();
+            } else {
+                document.getElementById('titleScreen').style.display = 'none';
+                document.getElementById('usernameScreen').style.display = 'block';
+                document.getElementById('usernameInput').focus();
+            }
+        }
+
+        function saveUsernameAndContinue() {
+            const input = document.getElementById('usernameInput').value.trim();
+            if (input) {
+                username = input;
+                localStorage.setItem('pmushUsername', username);
+            } else {
+                username = 'Sporeholder';
+                localStorage.setItem('pmushUsername', username);
+            }
+            document.getElementById('usernameScreen').style.display = 'none';
+            showPlayerSelect();
+        }
+
+        function showPlayerSelect() {
+            document.getElementById('titleScreen').style.display = 'none';
+            const container = document.getElementById('playerSelect');
+            container.style.display = 'block';
+            const options = document.getElementById('capOptions');
+            options.innerHTML = '';
+            capColors.forEach(color => {
+                const div = document.createElement('div');
+                div.className = 'player-option';
+                div.style.background = color;
+                if (color === selectedCapColor) div.classList.add('selected');
+                div.onclick = () => {
+                    selectedCapColor = color;
+                    localStorage.setItem('pmushCapColor', color);
+                    document.querySelectorAll('.player-option').forEach(o => o.classList.remove('selected'));
+                    div.classList.add('selected');
+                };
+                options.appendChild(div);
+            });
+        }
+
+        function startGame() {
+            document.getElementById('playerSelect').style.display = 'none';
+            document.getElementById('ui').style.display = 'flex';
+            gameState = 'playing';
+            gameRunning = true;
+            score = 0;
+            combo = 0;
+            player.x = 180; player.y = 450; player.dy = -12; player.vx = 0;
+            jetpackTime = 0; magnetTime = 0;
+            powerUps = []; particles = [];
+            generatePlatforms();
+        }
+
+        function backToMainMenu() {
+            document.getElementById('gameOver').style.display = 'none';
+            document.getElementById('ui').style.display = 'none';
+            document.getElementById('titleScreen').style.display = 'block';
+            gameState = 'title';
+            document.getElementById('titleHigh').textContent = highScore;
+        }
+
+        function restartGame() {
+            backToMainMenu();
+        }
+
+        // Controls
+        canvas.addEventListener('touchstart', e => {
+            if (gameState !== 'playing') return;
+            const rect = canvas.getBoundingClientRect();
+            for (let t of e.touches) {
+                if (t.clientX - rect.left < canvas.width / 2) touchLeft = true;
+                else touchRight = true;
+            }
+        });
+        canvas.addEventListener('touchend', () => { touchLeft = touchRight = false; });
+        canvas.addEventListener('touchmove', e => {
+            touchLeft = touchRight = false;
+            const rect = canvas.getBoundingClientRect();
+            for (let t of e.touches) {
+                if (t.clientX - rect.left < canvas.width / 2) touchLeft = true;
+                else touchRight = true;
+            }
+        });
+
+        window.addEventListener('keydown', e => keys[e.key] = true);
+        window.addEventListener('keyup', e => keys[e.key] = false);
+
+        // Init
+        document.getElementById('titleHigh').textContent = highScore;
+        gameLoop();
+    </script>
+</body>
+</html>
