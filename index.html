@@ -11,9 +11,10 @@
         .menu { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:rgba(10,5,30,0.95); border:6px solid #8b00ff; border-radius:20px; padding:30px; text-align:center; width:340px; box-shadow:0 0 60px #8b00ff; z-index:20; }
         button { margin:12px 0; padding:14px 40px; font-size:22px; background:#00ff9d; color:#000; border:none; border-radius:12px; width:100%; box-shadow:0 0 20px #00ff9d; }
         button:hover { background:#ff00cc; color:white; }
-        input { padding:12px; font-size:20px; width:80%; margin:15px 0; border-radius:8px; border:none; text-align:center; }
+        input { padding:12px; font-size:20px; width:80%; margin:15px 0; border-radius:8px; border:none; text-align:center; background:#1a1a2e; color:white; }
         .player-option { display:inline-block; margin:8px; width:70px; height:70px; cursor:pointer; border:4px solid transparent; border-radius:50%; }
         .player-option.selected { border:4px solid #ff00cc; box-shadow:0 0 20px #ff00cc; }
+        .lb-entry { display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #333; }
     </style>
 </head>
 <body>
@@ -26,12 +27,14 @@
         <button onclick="saveUsernameAndContinue()">CONTINUE</button>
     </div>
 
-    <!-- Title Screen -->
-    <div id="titleScreen" class="menu">
+    <!-- Main Menu -->
+    <div id="mainMenu" class="menu">
         <h1 style="font-size:42px; margin:0; color:#ff00cc; text-shadow:0 0 20px #ff00cc;">$PMUSH</h1>
         <h2 style="margin:10px 0 30px; color:#00ff9d; font-size:28px;">LILLY PAD HOP</h2>
-        <button onclick="checkUsernameAndPlay()">PLAY</button>
-        <div style="margin-top:20px; color:#aaa; font-size:18px;">High Score: <span id="titleHigh" style="color:#00ff9d;">0</span></div>
+        <button onclick="showPlayerSelect()">PLAY</button>
+        <button onclick="showLeaderboard()">LEADERBOARD</button>
+        <button onclick="showPlayerSelectFromMenu()">CHOOSE CAP</button>
+        <div style="margin-top:20px; color:#aaa; font-size:18px;">High Score: <span id="menuHigh" style="color:#00ff9d;">0</span></div>
     </div>
 
     <!-- Player Select -->
@@ -39,6 +42,13 @@
         <h2 style="color:#ff00cc; margin:0 0 20px;">CHOOSE YOUR CAP</h2>
         <div id="capOptions"></div>
         <button onclick="startGame()" style="margin-top:20px;">START JUMPING</button>
+    </div>
+
+    <!-- Leaderboard -->
+    <div id="leaderboardScreen" class="menu" style="display:none; max-height:80vh; overflow-y:auto;">
+        <h2 style="color:#ff00cc; margin:0 0 20px;">LEADERBOARD</h2>
+        <div id="lbList" style="text-align:left; max-height:400px; overflow-y:auto;"></div>
+        <button onclick="backToMainMenu()" style="margin-top:20px;">BACK</button>
     </div>
 
     <!-- Game UI -->
@@ -53,13 +63,13 @@
         <p style="font-size:24px; margin:15px 0 5px;">Your $PMUSH score:</p>
         <p id="finalScore" style="font-size:42px; color:#00ff9d; margin:0;"></p>
         <p id="shareText" style="margin:15px 0; color:#aaa; font-size:18px;"></p>
-        <button onclick="backToMainMenu()">BACK TO MENU</button>
+        <button onclick="submitScoreAndBack()">SUBMIT & BACK TO MENU</button>
     </div>
 
     <script>
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
-        let gameState = 'title';
+        let gameState = 'menu';
         let username = localStorage.getItem('pmushUsername') || '';
         let selectedCapColor = localStorage.getItem('pmushCapColor') || '#4A7CFF';
 
@@ -80,7 +90,28 @@
         let jetpackTime = 0;
         let magnetTime = 0;
 
-        const capColors = ['#4A7CFF', '#FF00CC', '#00FF88', '#FFAA00', '#AA00FF'];
+        // Local leaderboard (top 10)
+        let leaderboard = JSON.parse(localStorage.getItem('pmushLB')) || [];
+
+        const capColors = ['#4A7CFF', '#FF00CC', '#00FF88', '#FFAA00', '#AA00FF', '#00FFFF', '#FF8800', '#8800FF'];
+
+        function saveScoreToLB() {
+            leaderboard.push({ name: username || 'Sporeholder', score: Math.floor(score) });
+            leaderboard.sort((a,b) => b.score - a.score);
+            leaderboard = leaderboard.slice(0,10);
+            localStorage.setItem('pmushLB', JSON.stringify(leaderboard));
+        }
+
+        function renderLeaderboard() {
+            const container = document.getElementById('lbList');
+            container.innerHTML = '';
+            leaderboard.forEach((entry, i) => {
+                const div = document.createElement('div');
+                div.className = 'lb-entry';
+                div.innerHTML = `<span>#${i+1} ${entry.name}</span><span style="color:#00ff9d">${entry.score}</span>`;
+                container.appendChild(div);
+            });
+        }
 
         function generatePlatforms() {
             platforms = [];
@@ -347,8 +378,9 @@
         }
 
         function checkUsernameAndPlay() {
-            if (username) {
-                showPlayerSelect();
+            if (username && username.trim() !== '') {
+                document.getElementById('titleScreen').style.display = 'none';
+                document.getElementById('mainMenu').style.display = 'block';
             } else {
                 document.getElementById('titleScreen').style.display = 'none';
                 document.getElementById('usernameScreen').style.display = 'block';
@@ -358,19 +390,14 @@
 
         function saveUsernameAndContinue() {
             const input = document.getElementById('usernameInput').value.trim();
-            if (input) {
-                username = input;
-                localStorage.setItem('pmushUsername', username);
-            } else {
-                username = 'Sporeholder';
-                localStorage.setItem('pmushUsername', username);
-            }
+            username = input || 'Sporeholder';
+            localStorage.setItem('pmushUsername', username);
             document.getElementById('usernameScreen').style.display = 'none';
-            showPlayerSelect();
+            document.getElementById('mainMenu').style.display = 'block';
         }
 
         function showPlayerSelect() {
-            document.getElementById('titleScreen').style.display = 'none';
+            document.getElementById('mainMenu').style.display = 'none';
             const container = document.getElementById('playerSelect');
             container.style.display = 'block';
             const options = document.getElementById('capOptions');
@@ -390,6 +417,28 @@
             });
         }
 
+        function showPlayerSelectFromMenu() {
+            document.getElementById('mainMenu').style.display = 'none';
+            showPlayerSelect();
+        }
+
+        function showLeaderboard() {
+            document.getElementById('mainMenu').style.display = 'none';
+            document.getElementById('leaderboardScreen').style.display = 'block';
+            renderLeaderboard();
+        }
+
+        function renderLeaderboard() {
+            const container = document.getElementById('lbList');
+            container.innerHTML = '<div style="color:#ff00cc; margin-bottom:10px;">TOP SPOREHOLDERS</div>';
+            leaderboard.forEach((entry, i) => {
+                const div = document.createElement('div');
+                div.className = 'lb-entry';
+                div.innerHTML = `<span>#${i+1} ${entry.name}</span><span style="color:#00ff9d">${entry.score}</span>`;
+                container.appendChild(div);
+            });
+        }
+
         function startGame() {
             document.getElementById('playerSelect').style.display = 'none';
             document.getElementById('ui').style.display = 'flex';
@@ -405,13 +454,15 @@
 
         function backToMainMenu() {
             document.getElementById('gameOver').style.display = 'none';
+            document.getElementById('leaderboardScreen').style.display = 'none';
             document.getElementById('ui').style.display = 'none';
-            document.getElementById('titleScreen').style.display = 'block';
-            gameState = 'title';
-            document.getElementById('titleHigh').textContent = highScore;
+            document.getElementById('mainMenu').style.display = 'block';
+            gameState = 'menu';
+            document.getElementById('menuHigh').textContent = highScore;
         }
 
-        function restartGame() {
+        function submitScoreAndBack() {
+            saveScoreToLB();
             backToMainMenu();
         }
 
@@ -439,6 +490,7 @@
 
         // Init
         document.getElementById('titleHigh').textContent = highScore;
+        document.getElementById('menuHigh').textContent = highScore;
         gameLoop();
     </script>
 </body>
