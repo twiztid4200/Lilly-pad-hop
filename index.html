@@ -22,7 +22,7 @@
 
     <!-- Username Screen -->
     <div id="usernameScreen" class="menu" style="display:none;">
-        <h2 style="color:#ff00cc; margin:0 0 20px;">ENTER YOUR NAME</h2>
+        <h2 style="color:#ff00cc;">ENTER YOUR NAME</h2>
         <input id="usernameInput" type="text" placeholder="Sporeholder420" maxlength="20">
         <button onclick="saveUsernameAndContinue()">CONTINUE</button>
     </div>
@@ -31,24 +31,24 @@
     <div id="mainMenu" class="menu">
         <h1 style="font-size:42px; margin:0; color:#ff00cc; text-shadow:0 0 20px #ff00cc;">$PMUSH</h1>
         <h2 style="margin:10px 0 30px; color:#00ff9d; font-size:28px;">LILLY PAD HOP</h2>
-        <button onclick="showPlayerSelect()">PLAY</button>
+        <button onclick="startGame()">PLAY</button>
         <button onclick="showLeaderboard()">LEADERBOARD</button>
-        <button onclick="showPlayerSelectFromMenu()">CHOOSE CAP</button>
-        <div style="margin-top:20px; color:#aaa; font-size:18px;">High Score: <span id="menuHigh" style="color:#00ff9d;">0</span></div>
+        <button onclick="showPlayerSelect()">CHOOSE CAP</button>
+        <div style="margin-top:20px; color:#aaa;">High Score: <span id="menuHigh" style="color:#00ff9d;">0</span></div>
     </div>
 
     <!-- Player Select -->
     <div id="playerSelect" class="menu" style="display:none;">
-        <h2 style="color:#ff00cc; margin:0 0 20px;">CHOOSE YOUR CAP</h2>
+        <h2 style="color:#ff00cc;">CHOOSE YOUR CAP</h2>
         <div id="capOptions"></div>
-        <button onclick="startGame()" style="margin-top:20px;">START JUMPING</button>
+        <button onclick="startGameFromSelect()" style="margin-top:20px;">START JUMPING</button>
     </div>
 
     <!-- Leaderboard -->
-    <div id="leaderboardScreen" class="menu" style="display:none; max-height:80vh; overflow-y:auto;">
-        <h2 style="color:#ff00cc; margin:0 0 20px;">LEADERBOARD</h2>
-        <div id="lbList" style="text-align:left; max-height:400px; overflow-y:auto;"></div>
-        <button onclick="backToMainMenu()" style="margin-top:20px;">BACK</button>
+    <div id="leaderboardScreen" class="menu" style="display:none;">
+        <h2 style="color:#ff00cc;">LEADERBOARD</h2>
+        <div id="lbList" style="text-align:left; max-height:380px; overflow-y:auto; margin:15px 0;"></div>
+        <button onclick="backToMainMenu()">BACK TO MENU</button>
     </div>
 
     <!-- Game UI -->
@@ -60,15 +60,15 @@
     <!-- Game Over -->
     <div id="gameOver" class="menu" style="display:none;">
         <h1 style="margin:0; font-size:36px; color:#ff00cc;">GAME OVER</h1>
-        <p style="font-size:24px; margin:15px 0 5px;">Your $PMUSH score:</p>
+        <p style="font-size:24px; margin:15px 0 5px;">Your score:</p>
         <p id="finalScore" style="font-size:42px; color:#00ff9d; margin:0;"></p>
-        <p id="shareText" style="margin:15px 0; color:#aaa; font-size:18px;"></p>
-        <button onclick="submitScoreAndBack()">SUBMIT & BACK TO MENU</button>
+        <button onclick="submitScoreAndBack()" style="margin-top:20px;">SUBMIT & BACK TO MENU</button>
     </div>
 
     <script>
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
+
         let gameState = 'menu';
         let username = localStorage.getItem('pmushUsername') || '';
         let selectedCapColor = localStorage.getItem('pmushCapColor') || '#4A7CFF';
@@ -80,38 +80,9 @@
         let gravity = 0.58;
         let score = 0;
         let highScore = localStorage.getItem('pmushHigh') || 0;
-        let combo = 0;
-        let comboTimer = 0;
-        let gameRunning = true;
-        let gameTime = 0;
-        let keys = {};
-        let touchLeft = false;
-        let touchRight = false;
-        let jetpackTime = 0;
-        let magnetTime = 0;
-
-        // Local leaderboard (top 10)
         let leaderboard = JSON.parse(localStorage.getItem('pmushLB')) || [];
 
         const capColors = ['#4A7CFF', '#FF00CC', '#00FF88', '#FFAA00', '#AA00FF', '#00FFFF', '#FF8800', '#8800FF'];
-
-        function saveScoreToLB() {
-            leaderboard.push({ name: username || 'Sporeholder', score: Math.floor(score) });
-            leaderboard.sort((a,b) => b.score - a.score);
-            leaderboard = leaderboard.slice(0,10);
-            localStorage.setItem('pmushLB', JSON.stringify(leaderboard));
-        }
-
-        function renderLeaderboard() {
-            const container = document.getElementById('lbList');
-            container.innerHTML = '';
-            leaderboard.forEach((entry, i) => {
-                const div = document.createElement('div');
-                div.className = 'lb-entry';
-                div.innerHTML = `<span>#${i+1} ${entry.name}</span><span style="color:#00ff9d">${entry.score}</span>`;
-                container.appendChild(div);
-            });
-        }
 
         function generatePlatforms() {
             platforms = [];
@@ -347,7 +318,6 @@
                 if (score > highScore) highScore = Math.floor(score);
                 localStorage.setItem('pmushHigh', highScore);
                 document.getElementById('finalScore').textContent = Math.floor(score);
-                document.getElementById('shareText').textContent = `To the Moon! ${username || 'Sporeholder'} scored ${Math.floor(score)}! 🚀`;
                 document.getElementById('gameOver').style.display = 'block';
             }
 
@@ -379,10 +349,8 @@
 
         function checkUsernameAndPlay() {
             if (username && username.trim() !== '') {
-                document.getElementById('titleScreen').style.display = 'none';
                 document.getElementById('mainMenu').style.display = 'block';
             } else {
-                document.getElementById('titleScreen').style.display = 'none';
                 document.getElementById('usernameScreen').style.display = 'block';
                 document.getElementById('usernameInput').focus();
             }
@@ -417,30 +385,8 @@
             });
         }
 
-        function showPlayerSelectFromMenu() {
-            document.getElementById('mainMenu').style.display = 'none';
-            showPlayerSelect();
-        }
-
-        function showLeaderboard() {
-            document.getElementById('mainMenu').style.display = 'none';
-            document.getElementById('leaderboardScreen').style.display = 'block';
-            renderLeaderboard();
-        }
-
-        function renderLeaderboard() {
-            const container = document.getElementById('lbList');
-            container.innerHTML = '<div style="color:#ff00cc; margin-bottom:10px;">TOP SPOREHOLDERS</div>';
-            leaderboard.forEach((entry, i) => {
-                const div = document.createElement('div');
-                div.className = 'lb-entry';
-                div.innerHTML = `<span>#${i+1} ${entry.name}</span><span style="color:#00ff9d">${entry.score}</span>`;
-                container.appendChild(div);
-            });
-        }
-
         function startGame() {
-            document.getElementById('playerSelect').style.display = 'none';
+            document.getElementById('mainMenu').style.display = 'none';
             document.getElementById('ui').style.display = 'flex';
             gameState = 'playing';
             gameRunning = true;
@@ -452,9 +398,34 @@
             generatePlatforms();
         }
 
+        function startGameFromSelect() {
+            document.getElementById('playerSelect').style.display = 'none';
+            startGame();
+        }
+
+        function showLeaderboard() {
+            document.getElementById('mainMenu').style.display = 'none';
+            document.getElementById('leaderboardScreen').style.display = 'block';
+            renderLeaderboard();
+        }
+
+        function renderLeaderboard() {
+            const container = document.getElementById('lbList');
+            container.innerHTML = '';
+            leaderboard.forEach((entry, i) => {
+                const div = document.createElement('div');
+                div.className = 'lb-entry';
+                div.innerHTML = `<span>#${i+1} ${entry.name}</span><span style="color:#00ff9d">${entry.score}</span>`;
+                container.appendChild(div);
+            });
+            if (leaderboard.length === 0) {
+                container.innerHTML = '<p style="color:#aaa;">No scores yet. Be the first!</p>';
+            }
+        }
+
         function backToMainMenu() {
-            document.getElementById('gameOver').style.display = 'none';
             document.getElementById('leaderboardScreen').style.display = 'none';
+            document.getElementById('gameOver').style.display = 'none';
             document.getElementById('ui').style.display = 'none';
             document.getElementById('mainMenu').style.display = 'block';
             gameState = 'menu';
@@ -462,7 +433,12 @@
         }
 
         function submitScoreAndBack() {
-            saveScoreToLB();
+            if (score > 0) {
+                leaderboard.push({ name: username || 'Sporeholder', score: Math.floor(score) });
+                leaderboard.sort((a,b) => b.score - a.score);
+                leaderboard = leaderboard.slice(0,10);
+                localStorage.setItem('pmushLB', JSON.stringify(leaderboard));
+            }
             backToMainMenu();
         }
 
