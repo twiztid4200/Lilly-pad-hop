@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#0a1f0a">
+    <title>$PMUSH LILLY PAD HOP – ULTIMATE EDITION</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&amp;display=swap');
+        
+        :root {
+            --neon: #00ff9d;
+            --purple: #c300ff;
+        }
+        
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: #0a1f0a;
+            font-family: 'Press Start 2P', system-ui;
+            color: white;
+            touch-action: none;
+            user-select: none;
+            height: 100vh;
+            width: 100vw;
+            position: relative;
+        }
+        #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
+            background: #0a1f0a;
+            z-index: 1;
+        }
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(180deg, rgba(10,31,10,0.95) 0%, rgba(10,31,10,0.85) 100%);
+            transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            opacity: 1;
+        }
+        .screen.hidden { display: none; }
+        .title {
+            font-size: 28px;
+            line-height: 1.1;
+            text-align: center;
+            margin-bottom: 20px;
+            text-shadow: 
+                0 0 20px var(--neon),
+                0 0 40px var(--neon);
+            color: #fff;
+            animation: titlePulse 2s infinite;
+        }
+        .title span { color: var(--neon); }
+        .subtitle {
+            font-size: 14px;
+            letter-spacing: 4px;
+            color: var(--purple);
+            margin-bottom: 40px;
+            text-shadow: 0 0 15px var(--purple);
+        }
+        .btn {
+            background: linear-gradient(180deg, #00ff9d, #00cc7a);
+            color: #0a1f0a;
+            border: none;
+            padding: 16px 40px;
+            margin: 12px 0;
+            font-size: 18px;
+            font-family: 'Press Start 2P', system-ui;
+            text-transform: uppercase;
+            border-radius: 12px;
+            box-shadow: 
+                0 0 20px #00ff9d,
+                0 8px 0 #008c55;
+            transition: all 0.1s ease;
+            min-width: 260px;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+        .btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 4px 0 #008c55;
+        }
+        .btn::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 40%;
+            height: 300%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent);
+            transform: skewX(-25deg);
+            animation: shine 4s infinite;
+        }
+        @keyframes shine {
+            100% { transform: translateX(300%); }
+        }
+        .btn-alt {
+            background: linear-gradient(180deg, #c300ff, #8c00b3);
+            color: white;
+            box-shadow: 0 0 20px #c300ff, 0 8px 0 #5c0077;
+        }
+        .menu-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+            width: 280px;
+        }
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 20;
+            flex-direction: column;
+        }
+        .modal {
+            background: #112211;
+            border: 6px solid #00ff9d;
+            border-radius: 16px;
+            padding: 30px;
+            width: 90%;
+            max-width: 380px;
+            box-shadow: 0 0 40px #00ff9d;
+            text-align: center;
+        }
+        .score-text {
+            font-size: 42px;
+            color: #00ff9d;
+            text-shadow: 0 0 30px #00ff9d;
+        }
+        .pause-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 15;
+            font-size: 32px;
+            background: none;
+            border: none;
+            color: white;
+            text-shadow: 0 0 15px #fff;
+            cursor: pointer;
+            display: none;
+        }
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            animation: confetti-fall 3s linear forwards;
+        }
+        @keyframes titlePulse {
+            0%, 100% { text-shadow: 0 0 20px var(--neon), 0 0 40px var(--neon); }
+            50% { text-shadow: 0 0 30px var(--purple), 0 0 60px var(--purple); }
+        }
+        @keyframes confetti-fall {
+            0% { transform: translateY(-100vh) rotate(0deg); }
+            100% { transform: translateY(100vh) rotate(720deg); }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+
+    <!-- MAIN MENU -->
+    <div id="main-menu" class="screen">
+        <div class="title">$PMUSH<br>LILLY PAD HOP<span>🍄</span><br>ULTIMATE EDITION</div>
+        <div class="subtitle">TO THE MOON 🌕</div>
+        <div class="menu-grid">
+            <button class="btn" id="btn-play">PLAY</button>
+            <button class="btn" id="btn-leaderboard">LEADERBOARD</button>
+            <button class="btn btn-alt" id="btn-shop">CAP SHOP</button>
+            <button class="btn" id="btn-daily">DAILY CHALLENGE</button>
+            <button class="btn btn-alt" id="btn-username">SET USERNAME</button>
+        </div>
+        <div style="margin-top:30px; font-size:12px; opacity:0.6;">HIGH SCORE: <span id="menu-high">0</span></div>
+    </div>
+
+    <!-- LEADERBOARD SCREEN -->
+    <div id="leaderboard-screen" class="screen" style="display:none">
+        <div class="title">LEADERBOARD</div>
+        <div id="leaderboard-list" style="width:300px; max-height:420px; overflow-y:auto; text-align:left; font-size:14px; line-height:1.8;"></div>
+        <button class="btn" id="btn-back-lb" style="margin-top:30px; min-width:220px;">BACK</button>
+    </div>
+
+    <!-- CAP SHOP SCREEN -->
+    <div id="shop-screen" class="screen" style="display:none">
+        <div class="title">CAP SHOP</div>
+        <div style="margin-bottom:20px; font-size:13px;">Lifetime: <span id="lifetime-points" style="color:#00ff9d">0</span></div>
+        <div id="caps-grid" style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px; width:340px; max-height:460px; overflow-y:auto; padding:10px;"></div>
+        <button class="btn" id="btn-back-shop" style="margin-top:20px; min-width:220px;">BACK TO MENU</button>
+    </div>
+
+    <!-- DAILY CHALLENGE SCREEN -->
+    <div id="daily-screen" class="screen" style="display:none">
+        <div class="title">DAILY CHALLENGE</div>
+        <div id="daily-content" style="text-align:center; padding:20px; width:300px;">
+            <div id="daily-goal" style="font-size:18px; margin:20px 0; color:#c300ff;"></div>
+            <div id="daily-streak" style="font-size:28px; color:#00ff9d; margin:10px 0;">🔥 STREAK: 0</div>
+            <div id="daily-progress" style="height:12px; background:#112211; border-radius:6px; margin:20px 0; overflow:hidden;">
+                <div id="daily-bar" style="height:100%; width:0%; background:linear-gradient(90deg,#c300ff,#00ff9d);"></div>
+            </div>
+            <button class="btn" id="btn-start-daily" style="margin-top:10px;">START CHALLENGE</button>
+        </div>
+        <button class="btn" id="btn-back-daily" style="margin-top:30px; min-width:220px;">BACK</button>
+    </div>
+
+    <!-- PAUSE OVERLAY -->
+    <div id="pause-overlay" class="overlay">
+        <div class="modal">
+            <div class="title" style="font-size:28px; margin-bottom:20px;">PAUSED</div>
+            <button class="btn" id="btn-resume" style="margin:10px 0; width:100%;">RESUME</button>
+            <button class="btn btn-alt" id="btn-quit-pause" style="margin:10px 0; width:100%;">QUIT TO MENU</button>
+        </div>
+    </div>
+
+    <!-- GAME OVER OVERLAY -->
+    <div id="gameover-overlay" class="overlay">
+        <div class="modal">
+            <div id="go-title" style="font-size:36px; margin-bottom:10px; color:#ff0044;">GAME OVER</div>
+            <div style="margin:10px 0; font-size:14px;">SCORE</div>
+            <div id="final-score" class="score-text">000000</div>
+            <div id="new-high" style="display:none; color:#ffd700; font-size:18px; margin:10px 0; animation:pulse 1s infinite;">★ NEW HIGH SCORE ★</div>
+            <div style="margin:20px 0 10px; font-size:13px;">LIFETIME +<span id="lifetime-add">0</span></div>
+            <button class="btn" id="btn-play-again" style="margin:8px 0; width:100%;">PLAY AGAIN</button>
+            <button class="btn btn-alt" id="btn-share-x" style="margin:8px 0; width:100%;">SHARE ON X</button>
+            <button class="btn" id="btn-back-menu" style="margin:8px 0; width:100%;">MENU</button>
+        </div>
+    </div>
+
+    <!-- PAUSE BUTTON (in-game) -->
+    <button id="pause-btn" class="pause-btn">⏸</button>
+
+    <!-- USERNAME MODAL -->
+    <div id="username-modal" class="overlay" style="display:none">
+        <div class="modal">
+            <div class="title" style="margin-bottom:20px;">SET USERNAME</div>
+            <input id="username-input" type="text" maxlength="12" placeholder="YOUR NAME" 
+                   style="width:100%; padding:14px; font-size:18px; background:#112211; border:3px solid #00ff9d; color:white; text-align:center; border-radius:8px; margin-bottom:20px;">
+            <button class="btn" id="btn-save-username" style="width:100%;">SAVE</button>
+            <button class="btn btn-alt" id="btn-cancel-username" style="width:100%; margin-top:10px;">CANCEL</button>
+        </div>
+    </div>
+
+    <script>
+        // =============================================
+        // $PMUSH LILLY PAD HOP – ULTIMATE EDITION
+        // FIXED VERSION – Bug fixed: draw() now safe in menu
+        // =============================================
+
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d', { alpha: true });
+        
+        let WIDTH = 400;
+        let HEIGHT = 700;
+        let gameState = 'menu';
+        let lastTime = 0;
+        let score = 0;
+        let highScore = 0;
+        let lifetimeScore = 0;
+        let combo = 0;
+        let multiplier = 1;
+        let moonMode = false;
+        let cameraY = 0;
+        let player = {};
+        let platforms = [];
+        let powerups = [];
+        let enemies = [];
+        let particles = [];
+        let floatingTexts = [];
+        let backgroundOffset = 0;
+        let touchLeft = false;
+        let touchRight = false;
+        let lastJumpY = 0;
+        let shakeTime = 0;
+        let audioCtx;
+        
+        let username = 'FROGGER420';
+        let unlockedCaps = [0];
+        let currentCap = 0;
+        let leaderboardData = [];
+        let dailyStreak = 0;
+        let lastDailyDate = '';
+        let dailyGoalScore = 5000;
+        
+        const GRAVITY = 0.48;
+        const JUMP_FORCE = -15.8;
+        const MOVE_SPEED = 6.2;
+        const FRICTION = 0.82;
+        
+        const CAPS = [
+            {id:0, name:'DEFAULT 🍄', emoji:'🍄', color:'#0f0', req:0},
+            {id:1, name:'GOLD CROWN', emoji:'👑', color:'#ff0', req:5000},
+            {id:2, name:'NEON PRO', emoji:'🌈', color:'#0ff', req:12000},
+            {id:3, name:'MOON HAT', emoji:'🌕', color:'#c3f', req:25000},
+            {id:4, name:'ROCKET TOP', emoji:'🚀', color:'#f80', req:40000},
+            {id:5, name:'PEPE CROWN', emoji:'🐸', color:'#0f0', req:60000},
+            {id:6, name:'DIAMOND', emoji:'💎', color:'#0ff', req:90000},
+            {id:7, name:'FLAME', emoji:'🔥', color:'#f33', req:130000},
+            {id:8, name:'GALAXY', emoji:'🌌', color:'#a0f', req:180000},
+            {id:9, name:'RAINBOW', emoji:'🌈', color:'#f0f', req:250000},
+            {id:10, name:'ULTRA $', emoji:'💲', color:'#ff0', req:400000},
+            {id:11, name:'GOD MODE', emoji:'⚡', color:'#fff', req:1000000}
+        ];
+        
+        function initAudio() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        
+        function playSound(type, vol = 0.6) {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            
+            switch(type) {
+                case 'jump': osc.frequency.setValueAtTime(420, audioCtx.currentTime); gain.gain.value = vol; osc.type = 'sine'; gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.15); break;
+                case 'land': osc.frequency.setValueAtTime(180, audioCtx.currentTime); gain.gain.value = vol * 0.8; osc.type = 'triangle'; gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.08); break;
+                case 'break': osc.frequency.setValueAtTime(120, audioCtx.currentTime); gain.gain.value = vol; osc.type = 'sawtooth'; gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3); break;
+                case 'powerup':
+                    osc.frequency.setValueAtTime(880, audioCtx.currentTime); gain.gain.value = vol; osc.type = 'sine'; gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.6);
+                    setTimeout(()=>{ if(audioCtx){ const o2=audioCtx.createOscillator(); const g2=audioCtx.createGain(); o2.frequency.setValueAtTime(1200,audioCtx.currentTime); g2.gain.value=vol*0.8; o2.connect(g2).connect(audioCtx.destination); o2.start(); g2.gain.linearRampToValueAtTime(0,audioCtx.currentTime+0.3); o2.stop(audioCtx.currentTime+0.8); }},80);
+                    break;
+                case 'enemy': osc.frequency.setValueAtTime(280, audioCtx.currentTime); gain.gain.value = vol*0.7; osc.type = 'square'; gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.4); break;
+                case 'combo': osc.frequency.setValueAtTime(660 + combo*80, audioCtx.currentTime); gain.gain.value = vol; osc.type = 'sine'; gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.25); break;
+            }
+            osc.start(); osc.stop(audioCtx.currentTime + 1);
+            if (navigator.vibrate) { if(type==='land') navigator.vibrate([12]); if(type==='break') navigator.vibrate([24]); }
+        }
+        
+        function resizeCanvas() {
+            const aspect = WIDTH / HEIGHT;
+            let w = window.innerWidth;
+            let h = window.innerHeight;
+            if (w / h > aspect) w = Math.floor(h * aspect); else h = Math.floor(w / aspect);
+            canvas.style.width = w + 'px';
+            canvas.style.height = h + 'px';
+            canvas.width = WIDTH;
+            canvas.height = HEIGHT;
+            canvas.style.position = 'absolute';
+            canvas.style.left = '50%';
+            canvas.style.top = '50%';
+            canvas.style.transform = 'translate(-50%, -50%)';
+        }
+        
+        function loadData() {
+            const saved = localStorage.getItem('$pmush_save');
+            if (saved) {
+                const data = JSON.parse(saved);
+                highScore = data.highScore || 0;
+                lifetimeScore = data.lifetimeScore || 0;
+                unlockedCaps = data.unlockedCaps || [0];
+                currentCap = data.currentCap || 0;
+                username = data.username || 'FROGGER420';
+                leaderboardData = data.leaderboard || [];
+                dailyStreak = data.dailyStreak || 0;
+                lastDailyDate = data.lastDailyDate || '';
+            }
+            if (leaderboardData.length === 0) {
+                leaderboardData = [{name:'FROGGY',score:124800},{name:'LILYPAD69',score:98750},{name:'MOONHOP',score:87420},{name:'CAPMASTER',score:65230},{name:'$PMUSHGOD',score:43110}];
+            }
+            document.getElementById('menu-high').textContent = highScore.toLocaleString('en-US');
+        }
+        
+        function saveData() {
+            const data = { highScore: Math.max(highScore, score), lifetimeScore, unlockedCaps, currentCap, username, leaderboard: leaderboardData, dailyStreak, lastDailyDate };
+            localStorage.setItem('$pmush_save', JSON.stringify(data));
+        }
+        
+        function createPlayer() {
+            player = { x: WIDTH/2, y: HEIGHT-120, vx:0, vy:0, size:28, rotation:0, trail:[], shield:0, jetpack:0, magnet:0, ghost:0, cap:currentCap };
+        }
+        
+        function generatePlatforms() {
+            platforms = [];
+            let y = HEIGHT - 80;
+            platforms.push({x: WIDTH/2-50, y:y, w:100, type:'normal', moving:0, broken:false, alpha:1});
+            for (let i = 0; i < 18; i++) {
+                y -= 42 + Math.random()*18;
+                let type = 'normal';
+                const r = Math.random();
+                if (score > 8000 && r < 0.18) type = 'moving';
+                else if (score > 3000 && r < 0.32) type = 'breakable';
+                else if (score > 12000 && r < 0.45) type = 'disappearing';
+                platforms.push({x:30+Math.random()*(WIDTH-100), y:y, w:52+Math.random()*44, type, moving:type==='moving'?(Math.random()>0.5?2.4:-2.4):0, broken:false, alpha:1, vy:0});
+            }
+        }
+        
+        function spawnPowerup(x,y) {
+            const types = ['coin','jetpack','magnet','spring','shield','rocket','ghost'];
+            powerups.push({x, y:y-20, type:types[Math.floor(Math.random()*types.length)], size:22, vy:0, life:280});
+        }
+        
+        function spawnEnemy(x,y) {
+            enemies.push({x, y:y-10, vx:Math.random()*3.2-1.6, size:24, type:Math.random()>0.6?'spike':'buzzer', bob:0});
+        }
+        
+        function createParticles(x,y,count,hue,size=4) {
+            for (let i=0;i<count;i++) {
+                const angle = Math.random()*Math.PI*2;
+                const vel = 1.8 + Math.random()*4.2;
+                particles.push({x,y, vx:Math.cos(angle)*vel, vy:Math.sin(angle)*vel-2, life:38+Math.random()*22, size:size+Math.random()*2, hue, alpha:1});
+            }
+        }
+        
+        function createFloatingText(x,y,text,color='#ff0') {
+            floatingTexts.push({x,y,text,vy:-2.2,life:65,color,scale:1});
+        }
+        
+        function update() {
+            if (gameState !== 'playing') return;
+            
+            player.vy += GRAVITY;
+            if (touchLeft) player.vx -= MOVE_SPEED*0.32;
+            if (touchRight) player.vx += MOVE_SPEED*0.32;
+            player.vx *= FRICTION;
+            player.x += player.vx;
+            
+            if (player.x < -player.size) player.x = WIDTH + player.size;
+            if (player.x > WIDTH + player.size) player.x = -player.size;
+            
+            player.rotation = player.vx * 0.028;
+            
+            player.trail.push({x:player.x, y:player.y});
+            if (player.trail.length > 14) player.trail.shift();
+            
+            if (player.jetpack > 0) { player.jetpack--; player.vy = -8.5; createParticles(player.x, player.y+18, 3, 30, 6); if(Math.random()<0.4) playSound('jump',0.3); }
+            if (player.shield > 0) player.shield--;
+            if (player.magnet > 0) player.magnet--;
+            if (player.ghost > 0) player.ghost--;
+            
+            if (!moonMode && score > 10000) {
+                moonMode = true; multiplier = 2;
+                createFloatingText(WIDTH/2, HEIGHT/3, 'MOON MODE!', '#c3f');
+                playSound('powerup'); shakeTime = 18;
+            }
+            
+            for (let i=platforms.length-1; i>=0; i--) {
+                const p = platforms[i];
+                if (p.moving !== 0) { p.x += p.moving; if (p.x<10 || p.x+p.w>WIDTH-10) p.moving *= -1; }
+                if (p.type === 'disappearing' && p.alpha < 1) p.alpha -= 0.035;
+                if (p.alpha <= 0) { platforms.splice(i,1); continue; }
+                
+                if (player.vy > 0 && player.y + player.size/2 > p.y && player.y + player.size/2 < p.y+22 && player.x + player.size/2 > p.x && player.x - player.size/2 < p.x + p.w) {
+                    const perfect = Math.abs(player.vy) > 12;
+                    player.vy = JUMP_FORCE * (p.type==='breakable'?0.9:1);
+                    lastJumpY = player.y;
+                    playSound('land');
+                    shakeTime = perfect ? 8 : 4;
+                    createParticles(player.x, p.y, 18, 80);
+                    combo++;
+                    if (combo > 2) { multiplier = Math.min(5,1+Math.floor(combo/4)); playSound('combo'); createFloatingText(player.x,player.y-40,'x'+multiplier,'#ff0'); }
+                    if (perfect) { score += 200*multiplier; createFloatingText(player.x+20,player.y-60,'+200','#0ff'); }
+                    if (p.type==='breakable') { p.broken=true; playSound('break'); createParticles(p.x+p.w/2,p.y,26,20); }
+                    if (p.type==='disappearing') p.alpha = 0.92;
+                    const heightGain = Math.max(0, lastJumpY - player.y);
+                    score += Math.floor(heightGain * 0.6 * multiplier);
+                    if (score > 2500 && score % 2500 < 80) createFloatingText(WIDTH/2, HEIGHT/4, 'NEW HIGH!', '#ffd700');
+                }
+            }
+            
+            platforms = platforms.filter(p => !p.broken || p.alpha > 0.1);
+            
+            for (let i=powerups.length-1; i>=0; i--) {
+                const pu = powerups[i];
+                pu.vy += 0.3; pu.y += pu.vy; pu.life--;
+                if (player.magnet > 0 && pu.type==='coin') {
+                    const dx = player.x - pu.x; const dy = player.y - pu.y;
+                    const dist = Math.sqrt(dx*dx + dy*dy);
+                    if (dist < 110) { pu.x += dx/dist*9; pu.y += dy/dist*9; }
+                }
+                const dx = player.x - pu.x;
+                const dy = player.y - pu.y - 12;
+                if (dx*dx + dy*dy < (player.size + pu.size)**2) {
+                    playSound('powerup'); createParticles(pu.x,pu.y,32,280);
+                    switch(pu.type){
+                        case 'coin': score +=120*multiplier; combo+=2; createFloatingText(pu.x,pu.y,'+120','#ff0'); break;
+                        case 'jetpack': player.jetpack=110; createFloatingText(pu.x,pu.y,'JETPACK!','#f80'); break;
+                        case 'magnet': player.magnet=320; createFloatingText(pu.x,pu.y,'MAGNET!','#0ff'); break;
+                        case 'spring': player.vy=JUMP_FORCE*1.6; createFloatingText(pu.x,pu.y,'SPRING!','#f0f'); break;
+                        case 'shield': player.shield=380; createFloatingText(pu.x,pu.y,'SHIELD!','#0f0'); break;
+                        case 'rocket': player.vy=-28; createFloatingText(pu.x,pu.y,'ROCKET!','#f80'); break;
+                        case 'ghost': player.ghost=220; createFloatingText(pu.x,pu.y,'GHOST!','#c3f'); break;
+                    }
+                    powerups.splice(i,1);
+                }
+                if (pu.life <= 0) powerups.splice(i,1);
+            }
+            
+            for (let i=enemies.length-1; i>=0; i--) {
+                const e = enemies[i];
+                e.x += e.vx; e.bob = Math.sin(Date.now()/180)*4;
+                if (e.type==='spike' && (e.x<20 || e.x>WIDTH-20)) e.vx *= -1;
+                const edx = player.x - e.x;
+                const edy = (player.y-12) - (e.y + e.bob);
+                if (edx*edx + edy*edy < (player.size + e.size)**2) {
+                    if (player.vy > 4 && edy < -4 && !player.ghost) {
+                        player.vy = JUMP_FORCE*0.9; score +=100*multiplier; createFloatingText(e.x,e.y,'+100','#f33'); playSound('enemy'); createParticles(e.x,e.y,22,0); enemies.splice(i,1);
+                    } else if (player.shield <= 0 && player.ghost <= 0) {
+                        triggerGameOver(); return;
+                    }
+                }
+            }
+            
+            const targetCam = Math.max(cameraY, player.y - HEIGHT*0.38);
+            cameraY = cameraY*0.88 + targetCam*0.12;
+            
+            if (platforms[platforms.length-1].y > cameraY - HEIGHT*1.6) {
+                const lastY = platforms[platforms.length-1].y;
+                for (let i=0; i<5; i++) {
+                    const y = lastY - 38 - Math.random()*32;
+                    let type = 'normal';
+                    const r = Math.random();
+                    if (score > 15000) { if(r<0.25)type='moving'; else if(r<0.45)type='breakable'; else if(r<0.65)type='disappearing'; }
+                    const p = {x:18+Math.random()*(WIDTH-88), y, w:42+Math.random()*48, type, moving:type==='moving'?(Math.random()>0.5?2.8:-2.8):0, broken:false, alpha:1};
+                    platforms.push(p);
+                    if (Math.random()<0.22) spawnPowerup(p.x+p.w/2, p.y);
+                    if (Math.random()<0.13 && score>1200) spawnEnemy(p.x+p.w/2, p.y);
+                }
+            }
+            
+            while (platforms.length && platforms[0].y > cameraY + HEIGHT + 40) platforms.shift();
+            
+            for (let i=particles.length-1; i>=0; i--) {
+                const p = particles[i];
+                p.x += p.vx; p.y += p.vy; p.vy += 0.18; p.life--; p.alpha = p.life/40;
+                if (p.life <= 0) particles.splice(i,1);
+            }
+            
+            for (let i=floatingTexts.length-1; i>=0; i--) {
+                const t = floatingTexts[i];
+                t.y += t.vy; t.vy *= 0.96; t.life--; t.scale = Math.max(0.6, t.life/42);
+                if (t.life <= 0) floatingTexts.splice(i,1);
+            }
+            
+            backgroundOffset += 0.8 + (score / 8000);
+            
+            if (player.y - cameraY > HEIGHT + 80) triggerGameOver();
+            lifetimeScore += Math.floor(1 + score/120);
+        }
+        
+        function drawBackground() {
+            const bgHue = moonMode ? 260 : 140;
+            ctx.fillStyle = moonMode ? '#2a0044' : '#112211';
+            ctx.fillRect(0, 0, WIDTH, HEIGHT);
+            
+            ctx.strokeStyle = moonMode ? 'rgba(195, 80, 255, 0.3)' : 'rgba(120, 255, 100, 0.25)';
+            ctx.lineWidth = 1.5;
+            for (let i = 0; i < 38; i++) {
+                const x = (i * 31 + backgroundOffset * 0.3) % (WIDTH + 80) - 40;
+                const y = (i * 19) % (HEIGHT + 80) - 40 + (cameraY * 0.04 % 80);
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.lineTo(x + 18, y + 18);
+                ctx.stroke();
+            }
+            
+            ctx.fillStyle = moonMode ? '#3a0066' : '#0a3a0a';
+            for (let i = 0; i < 9; i++) {
+                const offset = (backgroundOffset * 0.8 + i * 62) % (WIDTH * 2);
+                ctx.save();
+                ctx.translate(offset - WIDTH / 2, HEIGHT * 0.7 - cameraY * 0.1 + i * 12);
+                ctx.scale(1.4, 0.6);
+                ctx.beginPath();
+                ctx.ellipse(0, 0, 52, 22, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+            
+            ctx.save();
+            ctx.globalAlpha = 0.18 + Math.sin(Date.now() / 600) * 0.08;
+            ctx.fillStyle = moonMode ? '#c300ff' : '#00ff9d';
+            ctx.font = '900 52px Press Start 2P';
+            ctx.textAlign = 'center';
+            ctx.shadowBlur = 60;
+            ctx.shadowColor = moonMode ? '#c300ff' : '#00ff9d';
+            ctx.fillText('$PMUSH', WIDTH/2, HEIGHT * 0.24 - cameraY * 0.04);
+            ctx.fillText('TO THE MOON', WIDTH/2, HEIGHT * 0.34 - cameraY * 0.04);
+            ctx.restore();
+        }
+        
+        function draw() {
+            ctx.clearRect(0, 0, WIDTH, HEIGHT);
+            drawBackground();
+            
+            // CRITICAL FIX: only draw game objects when actually playing
+            if (gameState !== 'playing' && gameState !== 'paused') return;
+            
+            // platforms
+            for (let p of platforms) {
+                ctx.globalAlpha = p.alpha;
+                if (p.type === 'normal') {
+                    ctx.fillStyle = '#00cc66'; ctx.fillRect(p.x, p.y - cameraY, p.w, 18);
+                    ctx.fillStyle = '#00ff88'; ctx.fillRect(p.x + 4, p.y - cameraY + 4, p.w - 8, 6);
+                } else if (p.type === 'moving') {
+                    ctx.fillStyle = '#00aaff'; ctx.fillRect(p.x, p.y - cameraY, p.w, 18);
+                    ctx.fillStyle = '#88ffff'; ctx.fillRect(p.x + 8, p.y - cameraY + 5, p.w - 18, 4);
+                } else if (p.type === 'breakable') {
+                    ctx.fillStyle = '#cc7700'; ctx.fillRect(p.x, p.y - cameraY, p.w, 18);
+                    ctx.strokeStyle = '#ffdd88'; ctx.lineWidth = 3;
+                    ctx.beginPath(); ctx.moveTo(p.x + 8, p.y - cameraY + 9); ctx.lineTo(p.x + p.w - 8, p.y - cameraY + 9); ctx.stroke();
+                } else if (p.type === 'disappearing') {
+                    ctx.fillStyle = `rgba(180,60,255,${p.alpha})`; ctx.fillRect(p.x, p.y - cameraY, p.w, 18);
+                }
+                ctx.globalAlpha = p.alpha * 0.6;
+                ctx.fillStyle = 'white';
+                ctx.fillRect(p.x + 6, p.y - cameraY + 3, p.w * 0.3, 3);
+            }
+            ctx.globalAlpha = 1;
+            
+            // powerups
+            for (let pu of powerups) {
+                const py = pu.y - cameraY;
+                ctx.shadowBlur = 22;
+                ctx.shadowColor = '#ff0';
+                if (pu.type === 'coin') {
+                    ctx.fillStyle = '#ff0'; ctx.fillRect(pu.x-10,py-10,20,20);
+                    ctx.fillStyle = '#0a1f0a'; ctx.font = 'bold 18px Arial'; ctx.textAlign='center'; ctx.fillText('$',pu.x,py+6);
+                } else if (pu.type === 'jetpack') {
+                    ctx.fillStyle = '#f80'; ctx.fillRect(pu.x-9,py-18,18,26);
+                    ctx.fillStyle = '#ff0'; ctx.fillRect(pu.x-12,py-26,24,9);
+                } else if (pu.type === 'shield') {
+                    ctx.strokeStyle = '#0f0'; ctx.lineWidth = 5;
+                    ctx.beginPath(); ctx.arc(pu.x,py,18,0,Math.PI*2); ctx.stroke();
+                } else {
+                    ctx.fillStyle = '#c3f'; ctx.fillRect(pu.x-12,py-12,24,24);
+                }
+                ctx.shadowBlur = 0;
+            }
+            
+            // enemies
+            for (let e of enemies) {
+                const ey = e.y + e.bob - cameraY;
+                if (e.type === 'spike') {
+                    ctx.fillStyle = '#f33';
+                    ctx.beginPath(); ctx.moveTo(e.x,ey); ctx.lineTo(e.x-18,ey+22); ctx.lineTo(e.x+18,ey+22); ctx.closePath(); ctx.fill();
+                    ctx.fillStyle = '#000'; ctx.fillRect(e.x-8,ey+10,16,6);
+                } else {
+                    ctx.fillStyle = '#aa0'; ctx.fillRect(e.x-18,ey-8,36,16);
+                    ctx.fillStyle = '#000'; ctx.fillRect(e.x-12,ey-4,8,8); ctx.fillRect(e.x+4,ey-4,8,8);
+                }
+            }
+            
+            // player
+            ctx.save();
+            ctx.translate(player.x, player.y - cameraY);
+            ctx.rotate(player.rotation);
+            if (player.ghost > 0) ctx.globalAlpha = 0.4;
+            ctx.shadowBlur = player.shield > 0 ? 40 : 22;
+            ctx.shadowColor = player.shield > 0 ? '#0ff' : '#0f0';
+            ctx.fillStyle = '#f8f8f8'; ctx.fillRect(-11, -4, 22, 32);
+            const capColor = CAPS[player.cap].color || '#0a0';
+            ctx.fillStyle = capColor;
+            ctx.beginPath(); ctx.ellipse(0, -18, player.size*0.9, 18, 0, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#fff'; ctx.fillRect(-14,-28,6,6); ctx.fillRect(9,-25,5,5);
+            ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(-10,-22,6,0,Math.PI*2); ctx.arc(10,-22,6,0,Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#fff'; ctx.fillRect(-12,-24,3,3); ctx.fillRect(8,-24,3,3);
+            ctx.fillStyle = '#f0f'; ctx.shadowBlur = 18; ctx.shadowColor = '#f0f';
+            ctx.beginPath(); ctx.arc(0,-29,7,0,Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#111'; ctx.fillRect(-3,-32,6,6);
+            if (player.jetpack > 0) {
+                ctx.shadowBlur = 30; ctx.shadowColor = '#f80';
+                ctx.fillStyle = '#ff0'; ctx.fillRect(-9,24,18,18+Math.random()*8);
+            }
+            ctx.restore();
+            
+            // trail
+            ctx.shadowBlur = 12;
+            for (let i=0; i<player.trail.length; i++) {
+                const alpha = i/player.trail.length*0.6;
+                ctx.globalAlpha = alpha;
+                ctx.fillStyle = '#0ff';
+                ctx.fillRect(player.trail[i].x-4, player.trail[i].y-cameraY-4, 8, 8);
+            }
+            ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+            
+            // particles
+            for (let p of particles) {
+                ctx.globalAlpha = p.alpha;
+                ctx.fillStyle = `hsl(${p.hue},100%,80%)`;
+                ctx.fillRect(p.x, p.y-cameraY, p.size, p.size);
+            }
+            ctx.globalAlpha = 1;
+            
+            // floating texts
+            ctx.textAlign = 'center';
+            ctx.font = 'bold 18px Press Start 2P';
+            for (let t of floatingTexts) {
+                ctx.globalAlpha = t.life/55;
+                ctx.fillStyle = t.color;
+                ctx.save();
+                ctx.translate(t.x, t.y-cameraY);
+                ctx.scale(t.scale, t.scale);
+                ctx.fillText(t.text, 0, 0);
+                ctx.restore();
+            }
+            ctx.globalAlpha = 1;
+            
+            // HUD
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 22px Press Start 2P';
+            ctx.textAlign = 'left';
+            ctx.shadowBlur = 12;
+            ctx.shadowColor = '#0ff';
+            ctx.fillText(score.toString().padStart(6,'0'), 24, 52);
+            ctx.shadowBlur = 0;
+            if (combo > 3) {
+                ctx.fillStyle = '#ff0';
+                ctx.font = 'bold 18px Press Start 2P';
+                ctx.fillText('COMBO ×' + combo, WIDTH - 170, 52);
+            }
+            
+            if (moonMode) {
+                ctx.globalAlpha = 0.3;
+                ctx.fillStyle = '#c300ff';
+                ctx.fillRect(0,0,WIDTH,HEIGHT);
+                ctx.globalAlpha = 1;
+            }
+            
+            if (shakeTime > 0) {
+                const dx = (Math.random()*12-6)*(shakeTime/10);
+                const dy = (Math.random()*12-6)*(shakeTime/10);
+                ctx.translate(dx, dy);
+                shakeTime--;
+            }
+        }
+        
+        function gameLoop(timestamp) {
+            if (!lastTime) lastTime = timestamp;
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+        
+        function initGame() {
+            score = 0;
+            combo = 0;
+            multiplier = 1;
+            moonMode = false;
+            cameraY = 0;
+            backgroundOffset = 0;
+            particles = [];
+            floatingTexts = [];
+            powerups = [];
+            enemies = [];
+            createPlayer();
+            generatePlatforms();
+            document.getElementById('pause-btn').style.display = 'block';
+        }
+        
+        function triggerGameOver() {
+            gameState = 'gameover';
+            document.getElementById('pause-btn').style.display = 'none';
+            const final = Math.floor(score);
+            const isNewHigh = final > highScore;
+            highScore = Math.max(highScore, final);
+            lifetimeScore += Math.floor(final / 2);
+            leaderboardData.unshift({name: username, score: final});
+            leaderboardData.sort((a,b)=>b.score-a.score);
+            leaderboardData = leaderboardData.slice(0,8);
+            saveData();
+            
+            const overlay = document.getElementById('gameover-overlay');
+            overlay.style.display = 'flex';
+            document.getElementById('final-score').textContent = final.toLocaleString('en-US');
+            document.getElementById('new-high').style.display = isNewHigh ? 'block' : 'none';
+            document.getElementById('lifetime-add').textContent = Math.floor(final/2);
+            
+            if (isNewHigh) {
+                for (let i=0; i<120; i++) {
+                    const confetti = document.createElement('div');
+                    confetti.className = 'confetti';
+                    confetti.style.left = Math.random()*100 + 'vw';
+                    confetti.style.background = `hsl(${Math.random()*360},100%,60%)`;
+                    confetti.style.animationDuration = (2 + Math.random()*3) + 's';
+                    confetti.style.opacity = Math.random();
+                    document.body.appendChild(confetti);
+                    setTimeout(() => confetti.remove(), 5000);
+                }
+                playSound('powerup');
+            }
+            if (navigator.vibrate) navigator.vibrate([80,40,120]);
+        }
+        
+        function setupUI() {
+            document.getElementById('btn-play').addEventListener('click', () => {
+                const menu = document.getElementById('main-menu');
+                menu.style.opacity = 0;
+                initAudio();
+                setTimeout(() => {
+                    menu.classList.add('hidden');
+                    gameState = 'playing';
+                    initGame();
+                }, 260);
+            });
+            
+            document.getElementById('btn-leaderboard').addEventListener('click', () => {
+                const screen = document.getElementById('leaderboard-screen');
+                document.getElementById('main-menu').classList.add('hidden');
+                screen.style.display = 'flex';
+                let html = `<div style="padding:10px 0;">`;
+                leaderboardData.forEach((entry,i)=>{ html += `<div style="display:flex;justify-content:space-between;padding:12px 8px;border-bottom:1px solid #223322;"><span>#${i+1} ${entry.name}</span><span style="color:#0ff">${entry.score.toLocaleString()}</span></div>`; });
+                html += `</div>`;
+                document.getElementById('leaderboard-list').innerHTML = html;
+            });
+            
+            document.getElementById('btn-back-lb').addEventListener('click', () => {
+                document.getElementById('leaderboard-screen').style.display = 'none';
+                document.getElementById('main-menu').classList.remove('hidden');
+            });
+            
+            document.getElementById('btn-shop').addEventListener('click', () => {
+                const screen = document.getElementById('shop-screen');
+                document.getElementById('main-menu').classList.add('hidden');
+                screen.style.display = 'flex';
+                document.getElementById('lifetime-points').textContent = lifetimeScore.toLocaleString();
+                const grid = document.getElementById('caps-grid');
+                grid.innerHTML = '';
+                CAPS.forEach(cap => {
+                    const unlocked = unlockedCaps.includes(cap.id);
+                    const div = document.createElement('div');
+                    div.style.cssText = `background:#112211;border:4px solid ${unlocked?'#0ff':'#555'};border-radius:8px;padding:12px 6px;text-align:center;cursor:${unlocked?'pointer':'default'};opacity:${unlocked?'1':'0.4'};`;
+                    div.innerHTML = `<div style="font-size:42px;line-height:1;">${cap.emoji}</div><div style="font-size:11px;margin:8px 0;">${cap.name}</div>${unlocked?`<div style="font-size:10px;color:#0f0;">EQUIPPED</div>`:`<div style="font-size:10px;">${cap.req} PTS</div>`}`;
+                    if (unlocked) div.onclick = () => { currentCap = cap.id; saveData(); grid.querySelectorAll('div').forEach(d=>d.style.borderColor='#555'); div.style.borderColor='#0ff'; };
+                    grid.appendChild(div);
+                });
+            });
+            
+            document.getElementById('btn-back-shop').addEventListener('click', () => {
+                document.getElementById('shop-screen').style.display = 'none';
+                document.getElementById('main-menu').classList.remove('hidden');
+            });
+            
+            document.getElementById('btn-daily').addEventListener('click', () => {
+                const today = new Date().toISOString().slice(0,10);
+                const screen = document.getElementById('daily-screen');
+                document.getElementById('main-menu').classList.add('hidden');
+                screen.style.display = 'flex';
+                if (lastDailyDate !== today) { dailyStreak = 0; lastDailyDate = today; dailyGoalScore = 4000 + Math.floor(Math.random()*3000); }
+                document.getElementById('daily-goal').innerHTML = `REACH <span style="color:#ff0">${dailyGoalScore}</span> IN ONE RUN`;
+                document.getElementById('daily-streak').innerHTML = `🔥 STREAK: ${dailyStreak} DAYS`;
+                document.getElementById('daily-bar').style.width = '0%';
+                document.getElementById('btn-start-daily').onclick = () => {
+                    screen.style.display = 'none';
+                    const menu = document.getElementById('main-menu');
+                    menu.style.opacity = 0;
+                    setTimeout(() => {
+                        menu.classList.add('hidden');
+                        gameState = 'playing';
+                        initGame();
+                        setTimeout(()=>{ multiplier = 1.5; },400);
+                        setTimeout(()=>{ multiplier = moonMode?2:1; },30000);
+                    },260);
+                };
+            });
+            
+            document.getElementById('btn-back-daily').addEventListener('click', () => {
+                document.getElementById('daily-screen').style.display = 'none';
+                document.getElementById('main-menu').classList.remove('hidden');
+            });
+            
+            document.getElementById('btn-username').addEventListener('click', () => {
+                document.getElementById('username-modal').style.display = 'flex';
+                document.getElementById('username-input').value = username;
+            });
+            
+            document.getElementById('btn-save-username').addEventListener('click', () => {
+                username = (document.getElementById('username-input').value || 'FROGGER420').toUpperCase().slice(0,12);
+                saveData();
+                document.getElementById('username-modal').style.display = 'none';
+            });
+            
+            document.getElementById('btn-cancel-username').addEventListener('click', () => {
+                document.getElementById('username-modal').style.display = 'none';
+            });
+            
+            document.getElementById('pause-btn').addEventListener('click', () => {
+                if (gameState !== 'playing') return;
+                gameState = 'paused';
+                document.getElementById('pause-overlay').style.display = 'flex';
+            });
+            
+            document.getElementById('btn-resume').addEventListener('click', () => {
+                document.getElementById('pause-overlay').style.display = 'none';
+                gameState = 'playing';
+            });
+            
+            document.getElementById('btn-quit-pause').addEventListener('click', () => {
+                document.getElementById('pause-overlay').style.display = 'none';
+                gameState = 'menu';
+                document.getElementById('main-menu').classList.remove('hidden');
+                document.getElementById('main-menu').style.opacity = 1;
+                document.getElementById('pause-btn').style.display = 'none';
+                saveData();
+            });
+            
+            document.getElementById('btn-play-again').addEventListener('click', () => {
+                document.getElementById('gameover-overlay').style.display = 'none';
+                gameState = 'playing';
+                initGame();
+            });
+            
+            document.getElementById('btn-share-x').addEventListener('click', () => {
+                const text = `I just scored ${Math.floor(score)} in $PMUSH LILLY PAD HOP – ULTIMATE EDITION! 🍄🌕 Can you beat me? #pmushhop`;
+                window.open(`https://x.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
+            });
+            
+            document.getElementById('btn-back-menu').addEventListener('click', () => {
+                document.getElementById('gameover-overlay').style.display = 'none';
+                gameState = 'menu';
+                document.getElementById('main-menu').classList.remove('hidden');
+                document.getElementById('main-menu').style.opacity = 1;
+                saveData();
+            });
+            
+            canvas.addEventListener('touchstart', e => {
+                if (gameState !== 'playing') return;
+                e.preventDefault();
+                const touchX = e.touches[0].clientX;
+                const rect = canvas.getBoundingClientRect();
+                const scaledX = (touchX - rect.left) / rect.width * WIDTH;
+                if (scaledX < WIDTH/2) touchLeft = true; else touchRight = true;
+            });
+            
+            canvas.addEventListener('touchend', e => { if (gameState === 'playing') { e.preventDefault(); touchLeft = false; touchRight = false; } });
+            
+            canvas.addEventListener('touchmove', e => {
+                if (gameState !== 'playing') return;
+                e.preventDefault();
+                const touchX = e.touches[0].clientX;
+                const rect = canvas.getBoundingClientRect();
+                const scaledX = (touchX - rect.left) / rect.width * WIDTH;
+                touchLeft = scaledX < WIDTH/2;
+                touchRight = scaledX >= WIDTH/2;
+            });
+            
+            window.addEventListener('keydown', e => { if (gameState === 'playing') { if(e.key==='ArrowLeft') touchLeft=true; if(e.key==='ArrowRight') touchRight=true; }});
+            window.addEventListener('keyup', e => { if (gameState === 'playing') { if(e.key==='ArrowLeft') touchLeft=false; if(e.key==='ArrowRight') touchRight=false; }});
+        }
+        
+        window.onload = function() {
+            loadData();
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+            requestAnimationFrame(gameLoop);
+            setupUI();
+            console.log('%c✅ $PMUSH LILLY PAD HOP – ULTIMATE EDITION FIXED & LOADED INSTANTLY 🍄🌕', 'color:#0ff;font-family:monospace;font-size:13px');
+        };
+    </script>
+</body>
+</html>
