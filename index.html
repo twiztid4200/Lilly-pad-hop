@@ -35,7 +35,6 @@
         <button onclick="startGame()">PLAY</button>
         <button onclick="showLeaderboard()">LEADERBOARD</button>
         <button onclick="showPlayerSelect()">CHOOSE CAP</button>
-        <button onclick="showRewards()">REWARDS</button>
         <div style="margin-top:20px; color:#aaa;">High Score: <span id="menuHigh" style="color:#00ff9d;">0</span></div>
     </div>
 
@@ -45,13 +44,6 @@
         <div id="capOptions"></div>
         <button onclick="startGameFromSelect()" style="margin-top:20px;">START JUMPING</button>
         <button onclick="backToMainMenu()" style="background:#555;">BACK</button>
-    </div>
-
-    <!-- Rewards / Unlocks -->
-    <div id="rewardsScreen" class="menu" style="display:none;">
-        <h2 style="color:#ff00cc;">REWARDS & UNLOCKS</h2>
-        <div id="rewardsList" style="text-align:left; margin:15px 0;"></div>
-        <button onclick="backToMainMenu()">BACK</button>
     </div>
 
     <!-- Leaderboard -->
@@ -91,9 +83,8 @@
         let score = 0;
         let highScore = localStorage.getItem('pmushHigh') || 0;
         let leaderboard = JSON.parse(localStorage.getItem('pmushLB')) || [];
-        let unlockedCaps = JSON.parse(localStorage.getItem('pmushUnlocked')) || [0];
 
-        const capColors = ['#4A7CFF', '#FF00CC', '#00FF88', '#FFAA00', '#AA00FF', '#00FFFF', '#FF8800', '#8800FF'];
+        const capColors = ['#4A7CFF', '#FF00CC', '#00FF88', '#FFAA00', '#AA00FF'];
 
         function generatePlatforms() {
             platforms = [];
@@ -381,7 +372,7 @@
             container.style.display = 'block';
             const options = document.getElementById('capOptions');
             options.innerHTML = '';
-            capColors.forEach((color, index) => {
+            capColors.forEach(color => {
                 const div = document.createElement('div');
                 div.className = 'player-option';
                 div.style.background = color;
@@ -435,21 +426,8 @@
             }
         }
 
-        function showRewards() {
-            document.getElementById('mainMenu').style.display = 'none';
-            const container = document.getElementById('rewardsScreen');
-            container.style.display = 'block';
-            const list = document.getElementById('rewardsList');
-            list.innerHTML = `
-                <p style="color:#ff00cc;">Legendary Gold Cap</p>
-                <p style="color:#aaa;">Unlocked at 5000+ score</p>
-                <p style="color:#ff00cc;">More coming soon...</p>
-            `;
-        }
-
         function backToMainMenu() {
             document.getElementById('leaderboardScreen').style.display = 'none';
-            document.getElementById('rewardsScreen').style.display = 'none';
             document.getElementById('gameOver').style.display = 'none';
             document.getElementById('ui').style.display = 'none';
             document.getElementById('mainMenu').style.display = 'block';
