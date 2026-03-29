@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>$PMUSH DOODLE JUMP</title>
+    <style>
+        body { margin:0; padding:0; background:#0a0a0a; overflow:hidden; touch-action:none; font-family:system-ui,-apple-system,sans-serif; }
+        canvas { display:block; margin:0 auto; border:6px solid #00ff9d; box-shadow:0 0 40px #00ff9d, 0 0 80px #8b00ff; }
+        #ui { position:absolute; top:15px; left:50%; transform:translateX(-50%); color:#00ff9d; font-size:28px; text-shadow:0 0 15px #00ff9d, 0 0 30px #8b00ff; pointer-events:none; z-index:10; display:flex; gap:30px; }
+        .menu { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:rgba(10,5,30,0.95); border:6px solid #8b00ff; border-radius:20px; padding:30px; text-align:center; width:340px; box-shadow:0 0 60px #8b00ff; z-index:20; }
+        button { margin:15px 0; padding:15px 40px; font-size:24px; background:#00ff9d; color:#000; border:none; border-radius:12px; width:100%; box-shadow:0 0 20px #00ff9d; }
+        button:hover { background:#ff00cc; color:white; }
+        .player-option { display:inline-block; margin:8px; width:70px; height:70px; cursor:pointer; border:4px solid transparent; border-radius:50%; }
+        .player-option.selected { border:4px solid #ff00cc; box-shadow:0 0 20px #ff00cc; }
+    </style>
+</head>
+<body>
+    <canvas id="canvas" width="400" height="700"></canvas>
+
+    <!-- Title Screen -->
+    <div id="titleScreen" class="menu">
+        <h1 style="font-size:42px; margin:0; color:#ff00cc; text-shadow:0 0 20px #ff00cc;">$PMUSH</h1>
+        <h2 style="margin:10px 0 30px; color:#00ff9d; font-size:28px;">DOODLE JUMP</h2>
+        <button onclick="showPlayerSelect()">PLAY</button>
+        <div style="margin-top:20px; color:#aaa; font-size:18px;">High Score: <span id="titleHigh" style="color:#00ff9d;">0</span></div>
+    </div>
+
+    <!-- Player Select -->
+    <div id="playerSelect" class="menu" style="display:none;">
+        <h2 style="color:#ff00cc; margin:0 0 20px;">CHOOSE YOUR CAP</h2>
+        <div id="capOptions"></div>
+        <button onclick="startGame()" style="margin-top:20px;">START JUMPING</button>
+    </div>
+
+    <!-- Game UI -->
+    <div id="ui" style="display:none;">
+        <div>SCORE: <span id="score">0</span></div>
+        <div>BEST: <span id="highScore">0</span></div>
+    </div>
+
+    <!-- Game Over -->
+    <div id="gameOver" class="menu" style="display:none;">
+        <h1 style="margin:0; font-size:36px; color:#ff00cc;">GAME OVER</h1>
+        <p style="font-size:24px; margin:15px 0 5px;">Your $PMUSH score:</p>
+        <p id="finalScore" style="font-size:42px; color:#00ff9d; margin:0;"></p>
+        <button onclick="restartGame()">JUMP AGAIN</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        let gameState = 'title'; // title, playerSelect, playing, gameOver
+        let selectedCapColor = '#4A7CFF'; // default blue
+
+        let player = { x: 180, y: 450, width: 48, height: 52, dy: 0, speed: 7.5, vx: 0 };
+        let platforms = [];
+        let particles = [];
+        let powerUps = [];
+        let gravity = 0.58;
+        let score = 0;
+        let highScore = localStorage.getItem('pmushHigh') || 0;
+        let gameRunning = true;
+        let gameTime = 0;
+        let keys = {};
+        let touchLeft = false;
+        let touchRight = false;
+        let jetpackTime = 0;
+        let magnetTime = 0;
+
+        const capColors = ['#4A7CFF', '#FF00CC', '#00FF88', '#FFAA00', '#AA00FF'];
+
+        function generatePlatforms() {
+            platforms = [];
+            for (let i = 0; i < 9; i++) {
+                const springChance = Math.min(0.15, 0.07 + score / 12000);
+                platforms.push({
+                    x: Math.random() * (canvas.width - 75) + 15,
+                    y: i * 68 + 110,
+                    width: 58,
+                    height: 16,
+                    spring: Math.random() < springChance
+                });
+            }
+        }
+
+        function createParticles(x, y, count, color) {
+            for (let i = 0; i < count; i++) {
+                particles.push({ x: x + Math.random()*20-10, y, vx: Math.random()*5-2.5, vy: Math.random()*5-6, life: 28, color });
+            }
+        }
+
+        function drawBackground() {
+            const grad = ctx.createLinearGradient(0,0,0,canvas.height);
+            grad.addColorStop(0,'#1a0033');
+            grad.addColorStop(0.5,'#2a0055');
+            grad.addColorStop(1,'#000011');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0,0,canvas.width,canvas.height);
+
+            ctx.shadowBlur = 8; ctx.shadowColor = '#aaffff';
+            for (let i = 0; i < 35; i++) {
+                const x = (i*31 + gameTime*0.15) % canvas.width;
+                const y = (i*19) % (canvas.height*0.7);
+                ctx.fillStyle = `rgba(200,255,255,0.7)`;
+                ctx.fillRect(x,y,2.5,2.5);
+            }
+            ctx.shadowBlur = 0;
+        }
+
+        function drawPlayer() {
+            ctx.save();
+            const cx = player.x + player.width/2;
+            const cy = player.y + player.height/2 - 4;
+            const tilt = Math.max(Math.min(player.vx*0.025,0.35),-0.35);
+            ctx.translate(cx,cy); ctx.rotate(tilt);
+
+            // Robe
+            ctx.shadowBlur = 15; ctx.shadowColor = '#8b00ff';
+            ctx.fillStyle = '#6B2F9E'; ctx.fillRect(-22,8,44,32);
+
+            // Body
+            ctx.shadowBlur = 10; ctx.shadowColor = '#00ff88';
+            ctx.fillStyle = '#00C76A'; ctx.fillRect(-18,-8,36,22);
+
+            // Head
+            ctx.fillStyle = '#00C76A';
+            ctx.beginPath(); ctx.ellipse(0,-18,21,19,0,0,Math.PI*2); ctx.fill();
+
+            // Eyes
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath(); ctx.ellipse(-9,-22,7,9,0.15,0,Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(9,-22,7,9,-0.15,0,Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#111';
+            ctx.beginPath(); ctx.ellipse(-9,-22,3.2,4.2,0,0,Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(9,-22,3.2,4.2,0,0,Math.PI*2); ctx.fill();
+
+            // Colored mushroom cap
+            ctx.shadowBlur = 20; ctx.shadowColor = '#00aaff';
+            ctx.fillStyle = selectedCapColor;
+            ctx.beginPath(); ctx.ellipse(0,-33,26,14,0,0,Math.PI*2); ctx.fill();
+
+            // Spots
+            ctx.fillStyle = '#ffffff'; ctx.shadowBlur = 3;
+            ctx.beginPath(); ctx.arc(-11,-37,4.2,0,Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(10,-38,3.8,0,Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(-4,-29,3.1,0,Math.PI*2); ctx.fill();
+
+            // 3rd eye
+            ctx.shadowBlur = 22; ctx.shadowColor = '#ff00ff';
+            ctx.fillStyle = '#3a0088';
+            ctx.beginPath(); ctx.moveTo(-8,-46); ctx.lineTo(8,-46); ctx.lineTo(0,-34); ctx.closePath(); ctx.fill();
+            ctx.fillStyle = '#ff00ff';
+            ctx.beginPath(); ctx.arc(0,-41,3.8 + Math.sin(gameTime*0.25)*0.6,0,Math.PI*2); ctx.fill();
+
+            ctx.restore();
+        }
+
+        function drawPlatforms() { /* same as before */ 
+            ctx.shadowBlur = 14; ctx.shadowColor = '#00ff9d';
+            for (let p of platforms) {
+                ctx.fillStyle = p.spring ? '#ff00cc' : '#00cc77';
+                ctx.beginPath(); ctx.ellipse(p.x + p.width/2, p.y + p.height/2, p.width/2 + 2, p.height/2 + 4, 0, 0, Math.PI*2); ctx.fill();
+                ctx.strokeStyle = '#008844'; ctx.lineWidth = 2.5;
+                ctx.beginPath(); ctx.moveTo(p.x+8,p.y+6); ctx.quadraticCurveTo(p.x+p.width/2,p.y+10,p.x+p.width-8,p.y+5); ctx.stroke();
+                ctx.fillStyle = 'rgba(255,255,255,0.6)'; ctx.fillRect(p.x+6,p.y+3,p.width-18,4);
+            }
+            ctx.shadowBlur = 0;
+        }
+
+        function drawPowerUps() { /* same as before */ 
+            ctx.shadowBlur = 15;
+            for (let pu of powerUps) {
+                if (pu.type === 'coin') {
+                    ctx.shadowColor = '#ffff00'; ctx.fillStyle = '#ffff00';
+                    ctx.beginPath(); ctx.arc(pu.x,pu.y,11,0,Math.PI*2); ctx.fill();
+                    ctx.fillStyle = '#000'; ctx.font = 'bold 16px system-ui'; ctx.textAlign='center';
+                    ctx.fillText('$',pu.x,pu.y+6);
+                } else if (pu.type === 'jetpack') {
+                    ctx.shadowColor = '#ff4400'; ctx.fillStyle = '#ff4400';
+                    ctx.fillRect(pu.x-9,pu.y-16,18,30);
+                    ctx.fillStyle = '#00ffff'; ctx.fillRect(pu.x-13,pu.y-10,26,9);
+                } else if (pu.type === 'magnet') {
+                    ctx.shadowColor = '#00ffff'; ctx.fillStyle = '#00ffff';
+                    ctx.fillRect(pu.x-12,pu.y-12,24,24);
+                    ctx.fillStyle = '#000'; ctx.font = 'bold 18px system-ui'; ctx.fillText('🧲',pu.x,pu.y+7);
+                }
+            }
+            ctx.shadowBlur = 0;
+        }
+
+        function update() {
+            if (!gameRunning || gameState !== 'playing') return;
+            gameTime++;
+
+            // Movement + wrap
+            let targetVx = 0;
+            if (touchLeft || keys['ArrowLeft'] || keys['a']) targetVx = -1;
+            if (touchRight || keys['ArrowRight'] || keys['d']) targetVx = 1;
+            player.vx = player.vx * 0.82 + targetVx * player.speed * 0.18;
+            player.x += player.vx;
+            if (player.x + player.width < 0) player.x = canvas.width;
+            if (player.x > canvas.width) player.x = -player.width;
+
+            // Gravity & power-ups
+            if (jetpackTime > 0) { player.dy = -8.5; jetpackTime--; if (Math.random()<0.6) createParticles(player.x+24,player.y+45,2,'#00ffff'); }
+            else player.dy += gravity;
+            player.y += player.dy;
+
+            // Platform collision
+            for (let p of platforms) {
+                if (player.dy > 0 && player.x + player.width > p.x && player.x < p.x + p.width &&
+                    player.y + player.height > p.y && player.y + player.height - player.dy <= p.y + 8) {
+                    player.y = p.y - player.height;
+                    player.dy = p.spring ? -18.5 : -14.2;
+                    createParticles(p.x + p.width/2, p.y, 14, p.spring ? '#ff00cc' : '#00ff9d');
+                }
+            }
+
+            // Scrolling + score
+            if (player.y < 240 && player.dy < 0) {
+                const scroll = 240 - player.y;
+                player.y = 240;
+                for (let p of platforms) p.y += scroll;
+                for (let pu of powerUps) pu.y += scroll;
+                score += Math.floor(scroll * 0.55);
+            }
+
+            // Progressive difficulty
+            const gap = 66 + Math.min(32, score / 1100);
+            while (platforms[platforms.length - 1].y > 30) {
+                const lastY = platforms[platforms.length - 1].y;
+                const springChance = Math.min(0.14, 0.20 - score / 18000);
+                platforms.push({ x: Math.random()*(canvas.width-75)+15, y: lastY - gap - Math.random()*14, width:58, height:16, spring: Math.random()<springChance });
+            }
+            if (platforms[0].y > canvas.height + 40) platforms.shift();
+
+            // Power-up spawning (gets rarer)
+            if (Math.random() < 0.0075 && powerUps.length < 3 && score > 300) {
+                const types = ['coin','jetpack','magnet'];
+                powerUps.push({ x: Math.random()*(canvas.width-50)+25, y:-40, type: types[Math.floor(Math.random()*3)], vy:1.4 });
+            }
+
+            // Update power-ups
+            for (let i = powerUps.length-1; i>=0; i--) {
+                const pu = powerUps[i];
+                pu.y += pu.vy;
+                if (player.x < pu.x+18 && player.x+player.width > pu.x-18 && player.y < pu.y+18 && player.y+player.height > pu.y-18) {
+                    if (pu.type === 'coin') { score += 180; createParticles(pu.x,pu.y,16,'#ffff00'); }
+                    else if (pu.type === 'jetpack') { jetpackTime = 110; createParticles(pu.x,pu.y,22,'#00ffff'); }
+                    else if (pu.type === 'magnet') { magnetTime = 180; createParticles(pu.x,pu.y,12,'#00ffff'); }
+                    powerUps.splice(i,1);
+                }
+                if (pu.y > canvas.height+20) powerUps.splice(i,1);
+            }
+
+            // Magnet effect
+            if (magnetTime > 0) magnetTime--;
+
+            // Particles
+            for (let i=particles.length-1; i>=0; i--) {
+                const p = particles[i]; p.x += p.vx; p.y += p.vy; p.vy += 0.18; p.life--;
+                if (p.life <= 0) particles.splice(i,1);
+            }
+
+            // Game over
+            if (player.y > canvas.height + 50) {
+                gameRunning = false;
+                if (score > highScore) highScore = Math.floor(score);
+                localStorage.setItem('pmushHigh', highScore);
+                document.getElementById('finalScore').textContent = Math.floor(score);
+                document.getElementById('gameOver').style.display = 'block';
+            }
+
+            document.getElementById('score').textContent = Math.floor(score);
+        }
+
+        function draw() {
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+            drawBackground();
+            if (gameState === 'playing') {
+                drawPlatforms();
+                drawPowerUps();
+                drawPlayer();
+                // particles
+                for (let p of particles) {
+                    ctx.globalAlpha = p.life/28;
+                    ctx.fillStyle = p.color;
+                    ctx.fillRect(p.x,p.y,4.5,4.5);
+                }
+                ctx.globalAlpha = 1;
+            }
+        }
+
+        function gameLoop() {
+            if (gameState === 'playing') update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function showPlayerSelect() {
+            document.getElementById('titleScreen').style.display = 'none';
+            const container = document.getElementById('playerSelect');
+            container.style.display = 'block';
+            const options = document.getElementById('capOptions');
+            options.innerHTML = '';
+            capColors.forEach((color,i) => {
+                const div = document.createElement('div');
+                div.className = 'player-option';
+                div.style.background = color;
+                if (color === selectedCapColor) div.classList.add('selected');
+                div.onclick = () => {
+                    selectedCapColor = color;
+                    document.querySelectorAll('.player-option').forEach(o=>o.classList.remove('selected'));
+                    div.classList.add('selected');
+                };
+                options.appendChild(div);
+            });
+        }
+
+        function startGame() {
+            document.getElementById('playerSelect').style.display = 'none';
+            document.getElementById('ui').style.display = 'flex';
+            gameState = 'playing';
+            gameRunning = true;
+            score = 0;
+            player.x = 180; player.y = 450; player.dy = -12; player.vx = 0;
+            jetpackTime = 0; magnetTime = 0;
+            powerUps = []; particles = [];
+            generatePlatforms();
+        }
+
+        function restartGame() {
+            document.getElementById('gameOver').style.display = 'none';
+            document.getElementById('titleScreen').style.display = 'block';
+            document.getElementById('ui').style.display = 'none';
+            gameState = 'title';
+            document.getElementById('titleHigh').textContent = highScore;
+        }
+
+        // Touch & keyboard
+        canvas.addEventListener('touchstart', e => {
+            if (gameState !== 'playing') return;
+            const rect = canvas.getBoundingClientRect();
+            for (let t of e.touches) {
+                if (t.clientX - rect.left < canvas.width / 2) touchLeft = true;
+                else touchRight = true;
+            }
+        });
+        canvas.addEventListener('touchend', () => { touchLeft = touchRight = false; });
+        canvas.addEventListener('touchmove', e => {
+            touchLeft = touchRight = false;
+            const rect = canvas.getBoundingClientRect();
+            for (let t of e.touches) {
+                if (t.clientX - rect.left < canvas.width / 2) touchLeft = true;
+                else touchRight = true;
+            }
+        });
+
+        window.addEventListener('keydown', e => keys[e.key] = true);
+        window.addEventListener('keyup', e => keys[e.key] = false);
+
+        // Start
+        document.getElementById('titleHigh').textContent = highScore;
+        gameLoop();
+    </script>
+</body>
+</html>
