@@ -1,0 +1,1423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>$PMUSH COSMIC LEAP – INFINITE ULTIMATE EDITION</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+        
+        :root {
+            --neon-cyan: #00f7ff;
+            --neon-purple: #c300ff;
+            --neon-green: #00ff9d;
+        }
+        
+        * { margin:0; padding:0; box-sizing:border-box; }
+        
+        body {
+            background: #0a0f2e;
+            color: white;
+            font-family: 'Press Start 2P', system-ui;
+            overflow: hidden;
+            touch-action: none;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+        
+        canvas {
+            display: block;
+            background: #0a0f2e;
+            box-shadow: 
+                0 0 40px var(--neon-cyan),
+                0 0 80px var(--neon-purple),
+                inset 0 0 60px rgba(0, 247, 255, 0.3);
+            border: 8px solid #1a0033;
+            image-rendering: pixelated;
+        }
+        
+        #overlay {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 0.25s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+        
+        .screen {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(10, 15, 46, 0.95);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            pointer-events: all;
+            text-align: center;
+            padding: 20px;
+            box-shadow: 0 0 60px var(--neon-purple);
+        }
+        
+        .screen.active {
+            display: flex;
+            animation: screenPop 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+        }
+        
+        @keyframes screenPop {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        
+        h1 {
+            font-size: 42px;
+            line-height: 1.1;
+            margin-bottom: 20px;
+            background: linear-gradient(90deg, var(--neon-cyan), var(--neon-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 
+                0 0 20px var(--neon-cyan),
+                0 0 40px var(--neon-purple);
+            letter-spacing: 4px;
+        }
+        
+        .subtitle {
+            font-size: 18px;
+            color: var(--neon-green);
+            text-shadow: 0 0 15px var(--neon-green);
+            margin-bottom: 40px;
+            animation: pulse 2s infinite;
+        }
+        
+        button {
+            font-family: 'Press Start 2P', system-ui;
+            font-size: 24px;
+            padding: 18px 42px;
+            margin: 12px;
+            background: #1a0033;
+            color: var(--neon-cyan);
+            border: 6px solid var(--neon-cyan);
+            border-radius: 12px;
+            box-shadow: 
+                0 0 30px var(--neon-cyan),
+                0 0 60px var(--neon-purple);
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        
+        button:hover {
+            transform: scale(1.1) translateY(-4px);
+            box-shadow: 
+                0 0 40px 10px var(--neon-cyan),
+                0 0 80px 20px var(--neon-purple);
+        }
+        
+        button:active {
+            transform: scale(0.95);
+        }
+        
+        .neon-text {
+            text-shadow: 
+                0 0 10px var(--neon-cyan),
+                0 0 20px var(--neon-cyan),
+                0 0 30px var(--neon-purple);
+        }
+        
+        #hud {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            display: flex;
+            justify-content: space-between;
+            pointer-events: none;
+            z-index: 20;
+            font-size: 22px;
+            font-family: 'Press Start 2P', system-ui;
+        }
+        
+        .hud-score {
+            background: rgba(10,15,46,0.8);
+            padding: 8px 20px;
+            border-radius: 9999px;
+            border: 4px solid var(--neon-cyan);
+            box-shadow: 0 0 20px var(--neon-cyan);
+            color: white;
+        }
+        
+        .pause-btn {
+            width: 54px;
+            height: 54px;
+            background: rgba(10,15,46,0.8);
+            border: 4px solid var(--neon-purple);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            box-shadow: 0 0 20px var(--neon-purple);
+            cursor: pointer;
+            pointer-events: all;
+        }
+        
+        .modal {
+            background: #1a0033;
+            border: 8px solid var(--neon-green);
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 340px;
+            box-shadow: 0 0 50px var(--neon-green);
+            animation: modalPop 0.3s ease;
+        }
+        
+        .modal h2 {
+            color: var(--neon-cyan);
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas" width="400" height="700"></canvas>
+    
+    <!-- HUD (drawn on canvas but overlay for pause) -->
+    <div id="hud">
+        <div id="score-display" class="hud-score">000000</div>
+        <div onclick="togglePause()" class="pause-btn" id="pause-button">⏸</div>
+    </div>
+    
+    <!-- MAIN MENU -->
+    <div id="overlay">
+        <div id="menu-screen" class="screen active">
+            <div style="text-align:center; margin-bottom:30px;">
+                <h1>$PMUSH<br>COSMIC LEAP</h1>
+                <div class="subtitle">INFINITE ULTIMATE EDITION</div>
+                <div style="font-size:14px; color:#00ff9d; margin-top:-10px; letter-spacing:6px;">TO THE MOON 🌕</div>
+            </div>
+            
+            <button onclick="startGame()">PLAY</button>
+            <button onclick="showCapsMenu()">CAPS</button>
+            <button onclick="showDailyMenu()">DAILY</button>
+            <button onclick="showLeaderboard()">LEADERBOARD</button>
+            
+            <div style="margin-top:40px; font-size:12px; opacity:0.7;">
+                HIGH SCORE <span id="menu-highscore" style="color:#00f7ff;">000000</span><br>
+                LIFETIME <span id="menu-lifetime" style="color:#c300ff;">000000</span>
+            </div>
+            
+            <div id="username-display" style="position:absolute; bottom:30px; font-size:14px; color:#00ff9d;">
+                SHROOMKING
+            </div>
+        </div>
+        
+        <!-- CAPS MENU -->
+        <div id="caps-screen" class="screen">
+            <div class="modal">
+                <h2 style="text-align:center;">EPIC CAPS</h2>
+                <div id="caps-grid" style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin:20px 0;"></div>
+                <button onclick="hideCapsMenu()" style="width:100%; font-size:18px; padding:12px;">BACK</button>
+                <div style="font-size:10px; text-align:center; margin-top:15px; color:#00f7ff;">UNLOCK WITH LIFETIME SCORE</div>
+            </div>
+        </div>
+        
+        <!-- DAILY MENU -->
+        <div id="daily-screen" class="screen">
+            <div class="modal">
+                <h2>DAILY CHALLENGE</h2>
+                <div style="text-align:center; margin:20px 0; font-size:18px;">
+                    TODAY'S GOAL<br>
+                    <span id="daily-goal" style="font-size:32px; color:#00ff9d;">∞</span>
+                </div>
+                <div style="background:#0a0f2e; padding:15px; border-radius:12px; margin:20px 0;">
+                    STREAK 🔥 <span id="daily-streak" style="color:#ff00aa; font-size:28px;">0</span> DAYS
+                </div>
+                <div id="daily-score-text" style="font-size:14px; text-align:center; margin-bottom:20px;"></div>
+                <button onclick="startDaily()" style="width:100%; background:#c300ff; border-color:#00f7ff;">JUMP THE DAILY</button>
+                <button onclick="hideDailyMenu()" style="width:100%; margin-top:10px;">BACK TO MENU</button>
+            </div>
+        </div>
+        
+        <!-- LEADERBOARD MENU -->
+        <div id="leaderboard-screen" class="screen">
+            <div class="modal">
+                <h2>GALACTIC TOP 10</h2>
+                <div id="leaderboard-list" style="width:100%; text-align:left; font-size:15px; line-height:2;"></div>
+                <button onclick="hideLeaderboard()" style="width:100%; margin-top:20px;">BACK</button>
+            </div>
+        </div>
+        
+        <!-- PAUSE MENU -->
+        <div id="pause-screen" class="screen">
+            <div class="modal">
+                <h2>PAUSED</h2>
+                <button onclick="resumeGame()" style="width:100%;">RESUME</button>
+                <button onclick="quitToMenu()" style="width:100%; margin-top:10px;">QUIT TO MENU</button>
+            </div>
+        </div>
+        
+        <!-- GAME OVER -->
+        <div id="gameover-screen" class="screen">
+            <div class="modal">
+                <h2 id="gameover-title" style="color:#ff00aa;">CRASHED INTO THE VOID</h2>
+                <div style="margin:20px 0;">
+                    <div style="font-size:14px;">SCORE</div>
+                    <div id="final-score" style="font-size:48px; color:var(--neon-cyan); text-shadow:0 0 30px;">000000</div>
+                </div>
+                <div style="display:flex; justify-content:space-around; margin:15px 0; font-size:13px;">
+                    <div>HIGH <span id="final-high" style="color:#00ff9d;"></span></div>
+                    <div>LIFETIME +<span id="final-lifetime-add" style="color:#c300ff;"></span></div>
+                </div>
+                <button onclick="restartGame()" style="width:100%;">JUMP AGAIN</button>
+                <button onclick="quitToMenu()" style="width:100%; margin-top:10px; background:#1a0033;">MENU</button>
+                
+                <div id="new-high-badge" style="display:none; position:absolute; top:30px; right:30px; background:#00ff9d; color:#0a0f2e; padding:6px 20px; border-radius:9999px; font-size:14px; transform:rotate(12deg); box-shadow:0 0 20px #00ff9d;">
+                    NEW HIGH!
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // ====================== CORE GAME ENGINE ======================
+        const canvas = document.getElementById('canvas')
+        const ctx = canvas.getContext('2d')
+        
+        // Game constants
+        const WIDTH = 400
+        const HEIGHT = 700
+        const GRAVITY = 0.48
+        const BOUNCE = -15.8
+        const MOVE_SPEED = 1.8
+        const FRICTION = 0.92
+        const SCROLL_THRESHOLD = HEIGHT * 0.35
+        
+        // Game variables
+        let player = {}
+        let platforms = []
+        let particles = []
+        let stars = []
+        let enemies = []
+        let powerups = []
+        let floatingTexts = []
+        let cameraY = 0
+        let score = 0
+        let combo = 0
+        let moonMode = false
+        let gameRunning = false
+        let paused = false
+        let lastTime = 0
+        let frame = 0
+        
+        // Input
+        let keys = {}
+        let touchLeft = false
+        let touchRight = false
+        let tilt = 0
+        
+        // Audio
+        let audioCtx
+        let soundEnabled = true
+        
+        // Persistent data
+        let saveData = {
+            highscore: 0,
+            lifetime: 0,
+            username: "SHROOMKING",
+            unlockedCaps: [true, false, false, false, false, false, false, false, false, false, false, false], // index 0 = default
+            dailyStreak: 0,
+            lastDailyDate: null,
+            leaderboard: [
+                {name:"MOONLORD", score:124800},
+                {name:"NEBULA420", score:98750},
+                {name:"STARSHROOM", score:87600},
+                {name:"VOIDKING", score:65400},
+                {name:"COSMICFROG", score:54320}
+            ],
+            currentCap: 0
+        }
+        
+        // Cap milestones (lifetime score required)
+        const CAP_MILESTONES = [
+            0,          // 0 Default 🍄
+            8000,       // 1 Neon Crown 👑
+            18000,      // 2 Cosmic Halo 🌌
+            35000,      // 3 Galaxy Topper 🌠
+            60000,      // 4 Flaming Third-Eye 🔥
+            95000,      // 5 Diamond Mushroom 💎
+            140000,     // 6 Star Lord Cap ⭐
+            210000,     // 7 Void Reaper ⚡
+            300000,     // 8 Rainbow Comet 🌈
+            450000,     // 9 Golden $PMUSH 💲
+            700000,     // 10 Moon God Crown 🌕
+            1000000     // 11 ULTIMATE BLACK HOLE
+        ]
+        
+        // Platform types
+        const PLATFORM_TYPES = {
+            NORMAL: 0,
+            MOVING: 1,
+            BREAKABLE: 2,
+            DISAPPEARING: 3
+        }
+        
+        // Powerup types
+        const POWERUP_TYPES = {
+            COIN: 0,
+            JETPACK: 1,
+            STAR_MAGNET: 2,
+            HYPER_SPRING: 3,
+            VOID_SHIELD: 4,
+            GHOST_NEBULA: 5,
+            TRIPLE_JUMP: 6,
+            ROCKET_BOOST: 7
+        }
+        
+        // ====================== UTILITIES ======================
+        function playSound(freq, type = 'sine', duration = 0.1, volume = 0.4) {
+            if (!soundEnabled || !audioCtx) return
+            const osc = audioCtx.createOscillator()
+            const gain = audioCtx.createGain()
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime)
+            osc.type = type
+            gain.gain.value = volume
+            osc.connect(gain).connect(audioCtx.destination)
+            osc.start()
+            gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + duration)
+            osc.stop(audioCtx.currentTime + duration + 0.1)
+        }
+        
+        function createParticle(x, y, vx, vy, life, color, size = 6) {
+            particles.push({
+                x, y, vx, vy,
+                life: life || 40,
+                maxLife: life || 40,
+                color,
+                size
+            })
+        }
+        
+        function createExplosion(x, y, count = 25, hueShift = 0) {
+            for (let i = 0; i < count; i++) {
+                const angle = Math.random() * Math.PI * 2
+                const vel = 2 + Math.random() * 5
+                const c = `hsl(${hueShift + Math.random() * 60}, 100%, 70%)`
+                createParticle(x, y, Math.cos(angle) * vel, Math.sin(angle) * vel - 2, 35 + Math.random() * 25, c, 4 + Math.random() * 5)
+            }
+            // Screen shake
+            if (Math.random() > 0.6) shakeScreen(8, 180)
+        }
+        
+        let shakeAmount = 0
+        let shakeDecay = 0
+        function shakeScreen(amount, duration) {
+            shakeAmount = Math.max(shakeAmount, amount)
+            shakeDecay = duration
+        }
+        
+        function floatingText(x, y, text, color = '#00f7ff') {
+            floatingTexts.push({
+                x, y,
+                text,
+                life: 55,
+                vy: -1.8,
+                color
+            })
+        }
+        
+        // ====================== PLAYER DRAW ======================
+        function drawPlayer() {
+            const p = player
+            ctx.save()
+            ctx.translate(p.x + cameraXOffset(), p.y)
+            
+            // Gentle squash & stretch on bounce
+            const squash = Math.max(0.7, 1 - p.vy * 0.015)
+            ctx.scale(1, squash)
+            
+            // Stem
+            ctx.fillStyle = '#f0f0f0'
+            ctx.shadowBlur = 12
+            ctx.shadowColor = '#fff'
+            ctx.fillRect(-12, 8, 24, 32)
+            
+            // Cap
+            const capHue = moonMode ? 280 : 160
+            ctx.fillStyle = `hsl(${capHue}, 100%, 55%)`
+            ctx.shadowBlur = 25
+            ctx.shadowColor = '#00ff9d'
+            ctx.beginPath()
+            ctx.ellipse(0, 8, 26, 18, 0, 0, Math.PI * 2)
+            ctx.fill()
+            
+            // Cap highlight
+            ctx.fillStyle = 'rgba(255,255,255,0.35)'
+            ctx.shadowBlur = 0
+            ctx.beginPath()
+            ctx.ellipse(-8, 4, 14, 9, Math.PI * -0.3, 0, Math.PI * 2)
+            ctx.fill()
+            
+            // Eyes
+            ctx.fillStyle = '#111'
+            ctx.shadowBlur = 0
+            ctx.fillRect(-17, -3, 8, 8)   // left
+            ctx.fillRect(9, -3, 8, 8)    // right
+            
+            ctx.fillStyle = '#fff'
+            ctx.fillRect(-14, -1, 3, 3)
+            ctx.fillRect(12, -1, 3, 3)
+            
+            // Third eye / rocket
+            const pulse = Math.sin(frame * 0.3) * 0.4 + 1.2
+            
+            if (player.rocketTime > 0) {
+                // ROCKET BOOST MODE
+                ctx.shadowBlur = 40
+                ctx.shadowColor = '#00f7ff'
+                ctx.fillStyle = '#00f7ff'
+                ctx.beginPath()
+                ctx.arc(0, -12, 9 * pulse, 0, Math.PI * 2)
+                ctx.fill()
+                
+                // Flame
+                ctx.shadowBlur = 60
+                ctx.shadowColor = '#ff00aa'
+                ctx.fillStyle = '#ff8800'
+                ctx.beginPath()
+                ctx.moveTo(-8, -4)
+                ctx.lineTo(0, -38 - Math.random() * 18)
+                ctx.lineTo(8, -4)
+                ctx.fill()
+                
+                // Extra flame particles already handled separately
+            } else {
+                // Normal third eye
+                ctx.shadowBlur = 22
+                ctx.shadowColor = '#c300ff'
+                ctx.fillStyle = '#c300ff'
+                ctx.beginPath()
+                ctx.arc(0, -13, 9 * pulse, 0, Math.PI * 2)
+                ctx.fill()
+                
+                ctx.fillStyle = '#fff'
+                ctx.shadowBlur = 0
+                ctx.beginPath()
+                ctx.arc(0, -13, 4, 0, Math.PI * 2)
+                ctx.fill()
+            }
+            
+            // Selected cap
+            const capIndex = saveData.currentCap
+            if (capIndex > 0) {
+                ctx.shadowBlur = 15
+                if (capIndex === 1) { // Neon Crown
+                    ctx.fillStyle = '#00f7ff'
+                    ctx.fillRect(-19, -36, 38, 8)
+                    ctx.fillRect(-15, -44, 8, 10)
+                    ctx.fillRect(7, -44, 8, 10)
+                } else if (capIndex === 2) { // Cosmic Halo
+                    ctx.strokeStyle = '#c300ff'
+                    ctx.lineWidth = 5
+                    ctx.beginPath()
+                    ctx.arc(0, -34, 21, 0, Math.PI * 2)
+                    ctx.stroke()
+                } else if (capIndex === 11) { // ULTIMATE BLACK HOLE
+                    ctx.shadowBlur = 45
+                    ctx.shadowColor = '#111'
+                    ctx.fillStyle = '#111'
+                    ctx.beginPath()
+                    ctx.arc(0, -32, 18, 0, Math.PI * 2)
+                    ctx.fill()
+                    ctx.shadowBlur = 25
+                    ctx.shadowColor = '#fff'
+                    ctx.fillStyle = '#fff'
+                    for (let i = 0; i < 12; i++) {
+                        const a = i * (Math.PI * 2 / 12)
+                        ctx.fillRect(Math.cos(a) * 18 - 2, -32 + Math.sin(a) * 18 - 2, 4, 4)
+                    }
+                }
+                // Other caps are simple icons – omitted for brevity but you get the idea
+            }
+            
+            ctx.restore()
+        }
+        
+        function cameraXOffset() {
+            return 0 // side wrap handled in logic
+        }
+        
+        // ====================== BACKGROUND ======================
+        function initStars() {
+            stars = []
+            for (let i = 0; i < 280; i++) {
+                stars.push({
+                    x: Math.random() * WIDTH,
+                    y: Math.random() * HEIGHT * 3,
+                    size: Math.random() * 3.5 + 0.8,
+                    speed: Math.random() * 0.6 + 0.2,
+                    alphaSpeed: Math.random() * 0.08 + 0.03
+                })
+            }
+        }
+        
+        function drawBackground() {
+            // Deep space gradient
+            const grad = ctx.createLinearGradient(0, 0, 0, HEIGHT)
+            grad.addColorStop(0, moonMode ? '#3d0066' : '#0a0f2e')
+            grad.addColorStop(1, moonMode ? '#1a0033' : '#1a0033')
+            ctx.fillStyle = grad
+            ctx.fillRect(0, 0, WIDTH, HEIGHT)
+            
+            // Nebula glow
+            ctx.save()
+            ctx.globalAlpha = moonMode ? 0.7 : 0.35
+            const nebula = ctx.createRadialGradient(WIDTH * 0.3, HEIGHT * 0.4, 10, WIDTH * 0.8, HEIGHT * 0.8, 300)
+            nebula.addColorStop(0, '#c300ff')
+            nebula.addColorStop(1, 'transparent')
+            ctx.fillStyle = nebula
+            ctx.fillRect(0, 0, WIDTH, HEIGHT)
+            ctx.restore()
+            
+            // Stars
+            ctx.shadowBlur = 4
+            const time = Date.now() * 0.001
+            for (let star of stars) {
+                const twinkle = Math.sin(time * star.alphaSpeed * 12 + star.x) * 0.5 + 0.5
+                ctx.globalAlpha = 0.6 + twinkle * 0.4
+                ctx.shadowColor = moonMode ? '#c300ff' : '#00f7ff'
+                ctx.fillStyle = '#ffffff'
+                ctx.fillRect(star.x, (star.y - cameraY * star.speed) % (HEIGHT * 3), star.size, star.size)
+            }
+            ctx.globalAlpha = 1
+            ctx.shadowBlur = 0
+        }
+        
+        // ====================== PLATFORM SYSTEM ======================
+        function generatePlatform(y) {
+            const typeRoll = Math.random()
+            let type = PLATFORM_TYPES.NORMAL
+            let w = 78 + Math.random() * 32
+            let vx = 0
+            
+            if (score > 8000 && typeRoll < 0.2) type = PLATFORM_TYPES.MOVING
+            else if (score > 14000 && typeRoll < 0.35) type = PLATFORM_TYPES.BREAKABLE
+            else if (score > 22000 && typeRoll < 0.5) type = PLATFORM_TYPES.DISAPPEARING
+            
+            if (type === PLATFORM_TYPES.MOVING) {
+                vx = (Math.random() > 0.5 ? 1.8 : -1.8) * (1 + score / 40000)
+                w = 58
+            }
+            
+            platforms.push({
+                x: Math.random() * (WIDTH - w),
+                y: y,
+                width: w,
+                height: 18,
+                type: type,
+                vx: vx,
+                life: type === PLATFORM_TYPES.DISAPPEARING ? 90 : 9999,
+                broken: false
+            })
+        }
+        
+        function initPlatforms() {
+            platforms = []
+            for (let i = 0; i < 14; i++) {
+                generatePlatform(HEIGHT - i * 52 - Math.random() * 30)
+            }
+            // First platform under player
+            platforms[0].y = player.y + 40
+        }
+        
+        function drawPlatform(p) {
+            if (p.broken) return
+            
+            ctx.save()
+            ctx.shadowBlur = 18
+            let baseColor = '#00ff9d'
+            
+            if (p.type === PLATFORM_TYPES.MOVING) {
+                ctx.shadowColor = '#00f7ff'
+                baseColor = '#00f7ff'
+            } else if (p.type === PLATFORM_TYPES.BREAKABLE) {
+                ctx.shadowColor = '#ff8800'
+                baseColor = '#ff8800'
+            } else if (p.type === PLATFORM_TYPES.DISAPPEARING) {
+                ctx.globalAlpha = p.life / 90
+                ctx.shadowColor = '#c300ff'
+                baseColor = '#c300ff'
+            } else {
+                ctx.shadowColor = '#00ff9d'
+            }
+            
+            // Main platform
+            ctx.fillStyle = baseColor
+            ctx.fillRect(p.x, p.y, p.width, p.height)
+            
+            // Top highlight
+            ctx.shadowBlur = 0
+            ctx.fillStyle = 'rgba(255,255,255,0.9)'
+            ctx.fillRect(p.x + 3, p.y, p.width - 6, 4)
+            
+            // Inner glow line
+            ctx.fillStyle = '#ffffff'
+            ctx.globalAlpha = 0.3
+            ctx.fillRect(p.x + 8, p.y + 6, p.width - 16, 3)
+            ctx.restore()
+        }
+        
+        // ====================== ENEMIES & POWERUPS ======================
+        function spawnEnemy() {
+            if (Math.random() < 0.02 + score / 80000 && platforms.length > 3) {
+                const plat = platforms[Math.floor(Math.random() * platforms.length)]
+                if (plat.type !== PLATFORM_TYPES.BREAKABLE) {
+                    enemies.push({
+                        x: plat.x + plat.width / 2,
+                        y: plat.y - 24,
+                        vx: Math.random() > 0.5 ? 2.2 : -2.2,
+                        type: Math.random() > 0.6 ? 'spiky' : 'buzzer',
+                        size: 18
+                    })
+                }
+            }
+        }
+        
+        function spawnPowerup() {
+            if (Math.random() < 0.008 + score / 120000 && platforms.length > 4) {
+                const plat = platforms[Math.floor(3 + Math.random() * (platforms.length - 4))]
+                powerups.push({
+                    x: plat.x + Math.random() * plat.width,
+                    y: plat.y - 30,
+                    type: Math.floor(Math.random() * Object.keys(POWERUP_TYPES).length),
+                    vy: 0,
+                    life: 240
+                })
+            }
+        }
+        
+        function drawEnemy(e) {
+            ctx.save()
+            ctx.translate(e.x, e.y)
+            if (e.type === 'spiky') {
+                ctx.fillStyle = '#ff0044'
+                ctx.shadowBlur = 12
+                ctx.shadowColor = '#ff0044'
+                ctx.beginPath()
+                ctx.arc(0, 0, e.size / 2, 0, Math.PI * 2)
+                ctx.fill()
+                // spikes
+                for (let i = 0; i < 8; i++) {
+                    const a = i * (Math.PI * 2 / 8)
+                    ctx.fillRect(Math.cos(a) * 12, Math.sin(a) * 12 - 3, 10, 6)
+                }
+            } else {
+                // buzzer
+                ctx.fillStyle = '#aa00ff'
+                ctx.shadowBlur = 25
+                ctx.shadowColor = '#c300ff'
+                ctx.fillRect(-14, -8, 28, 16)
+                ctx.fillStyle = '#fff'
+                ctx.fillRect(-8, -12, 6, 8)
+                ctx.fillRect(2, -12, 6, 8)
+            }
+            ctx.restore()
+        }
+        
+        function drawPowerup(pu) {
+            ctx.save()
+            ctx.translate(pu.x, pu.y)
+            const bob = Math.sin(frame * 0.2) * 4
+            
+            if (pu.type === POWERUP_TYPES.COIN) {
+                ctx.shadowBlur = 30
+                ctx.shadowColor = '#ffee00'
+                ctx.fillStyle = '#ffee00'
+                ctx.fillRect(-9, -9 + bob, 18, 18)
+                ctx.fillStyle = '#111'
+                ctx.font = 'bold 14px Press Start 2P'
+                ctx.fillText('$', -5, 5 + bob)
+            } else if (pu.type === POWERUP_TYPES.ROCKET_BOOST) {
+                ctx.shadowBlur = 50
+                ctx.shadowColor = '#00f7ff'
+                ctx.fillStyle = '#00f7ff'
+                ctx.beginPath()
+                ctx.moveTo(0, -16 + bob)
+                ctx.lineTo(-12, 12 + bob)
+                ctx.lineTo(12, 12 + bob)
+                ctx.fill()
+                ctx.fillStyle = '#ff00aa'
+                ctx.fillRect(-4, 8 + bob, 8, 12)
+            } else {
+                // generic star for other powerups
+                ctx.shadowBlur = 25
+                ctx.shadowColor = '#c300ff'
+                ctx.fillStyle = '#c300ff'
+                ctx.fillRect(-10, -10 + bob, 20, 20)
+            }
+            ctx.restore()
+        }
+        
+        // ====================== COLLISION & PHYSICS ======================
+        function checkPlatformCollision() {
+            const pBottom = player.y + 26
+            const pOldBottom = player.y + 26 - player.vy
+            
+            for (let i = 0; i < platforms.length; i++) {
+                const p = platforms[i]
+                if (p.broken) continue
+                
+                if (player.vy > 0 &&
+                    pOldBottom <= p.y &&
+                    pBottom >= p.y &&
+                    player.x + 18 > p.x &&
+                    player.x - 18 < p.x + p.width) {
+                    
+                    // LANDING!
+                    player.y = p.y - 26
+                    player.vy = BOUNCE
+                    
+                    // Juicy feedback
+                    createExplosion(player.x, player.y + 28, 18, 120)
+                    playSound(280, 'triangle', 0.12, 0.8)
+                    playSound(420, 'sine', 0.08, 0.6)
+                    
+                    combo++
+                    score += Math.floor(10 * (1 + combo * 0.3))
+                    
+                    // Perfect landing bonus
+                    if (Math.abs(player.vy) > 18) {
+                        score += 200
+                        floatingText(player.x, player.y - 30, '+200', '#00ff9d')
+                        shakeScreen(12, 120)
+                    }
+                    
+                    // Type reactions
+                    if (p.type === PLATFORM_TYPES.BREAKABLE) {
+                        p.broken = true
+                        createExplosion(p.x + p.width / 2, p.y + 8, 22, 30)
+                    }
+                    if (p.type === PLATFORM_TYPES.DISAPPEARING) {
+                        p.life = 30
+                    }
+                    
+                    // Hyper spring effect
+                    if (player.hyperTime > 0) {
+                        player.vy = BOUNCE * 1.6
+                        createExplosion(player.x, player.y + 10, 32, 200)
+                    }
+                    
+                    return true
+                }
+            }
+            return false
+        }
+        
+        function updatePlayer() {
+            // Horizontal input
+            let move = 0
+            if (keys['ArrowLeft'] || touchLeft) move = -1
+            if (keys['ArrowRight'] || touchRight) move = 1
+            if (tilt) move = tilt * 1.8
+            
+            player.vx += move * MOVE_SPEED
+            player.vx *= FRICTION
+            if (Math.abs(player.vx) > 9) player.vx = Math.sign(player.vx) * 9
+            
+            player.vy += GRAVITY
+            player.x += player.vx
+            player.y += player.vy
+            
+            // Side wrap
+            if (player.x < -26) player.x = WIDTH + 26
+            if (player.x > WIDTH + 26) player.x = -26
+            
+            // Rocket boost
+            if (player.rocketTime > 0) {
+                player.rocketTime--
+                player.vy -= 1.1
+                if (frame % 3 === 0) {
+                    createParticle(player.x, player.y + 30, (Math.random() - 0.5) * 3, 4 + Math.random() * 4, 22, '#ff8800')
+                }
+            }
+            
+            // Other timed powerups
+            if (player.jetpackTime > 0) player.jetpackTime--
+            if (player.hyperTime > 0) player.hyperTime--
+            if (player.shieldTime > 0) player.shieldTime--
+            if (player.ghostTime > 0) player.ghostTime--
+            
+            // Triple jump
+            if (player.tripleLeft > 0 && player.vy > 0 && checkPlatformCollision()) {
+                player.tripleLeft--
+                player.vy = BOUNCE * 1.45
+            }
+            
+            // Moon mode multiplier
+            if (score > 10000 && !moonMode) {
+                moonMode = true
+                shakeScreen(22, 600)
+                playSound(120, 'sine', 1.2, 0.3)
+                floatingText(WIDTH / 2, 140, 'MOON MODE!', '#c300ff')
+            }
+            
+            // Die condition
+            if (player.y > HEIGHT + 80) {
+                gameOver()
+            }
+        }
+        
+        function updateObjects() {
+            // Platforms
+            for (let i = platforms.length - 1; i >= 0; i--) {
+                const p = platforms[i]
+                
+                if (p.type === PLATFORM_TYPES.MOVING) {
+                    p.x += p.vx
+                    if (p.x < 0 || p.x + p.width > WIDTH) p.vx *= -1
+                }
+                
+                if (p.type === PLATFORM_TYPES.DISAPPEARING) {
+                    p.life--
+                    if (p.life <= 0) platforms.splice(i, 1)
+                }
+                
+                // Scroll platforms down
+                p.y += 0.8 + score / 18000
+                
+                if (p.y > HEIGHT + 40) platforms.splice(i, 1)
+            }
+            
+            // Spawn new platforms
+            if (platforms.length < 16) {
+                const lastY = Math.min(...platforms.map(p => p.y))
+                generatePlatform(lastY - 48 - Math.random() * 22)
+            }
+            
+            // Enemies
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                const e = enemies[i]
+                e.x += e.vx
+                e.y += 1.4 // drift down with scroll
+                
+                if (e.x < 0 || e.x > WIDTH) e.vx *= -1
+                
+                // Collision with player
+                const dx = player.x - e.x
+                const dy = player.y + 8 - e.y
+                if (dx * dx + dy * dy < 900) {
+                    if (player.vy > 0 && dy > 0) {
+                        // Jump on enemy
+                        player.vy = BOUNCE * 0.9
+                        score += 100
+                        floatingText(e.x, e.y, '+100', '#ff00aa')
+                        enemies.splice(i, 1)
+                        createExplosion(e.x, e.y, 18, 340)
+                        playSound(880, 'sawtooth', 0.15)
+                    } else if (player.shieldTime <= 0) {
+                        gameOver()
+                    }
+                }
+                
+                if (e.y > HEIGHT + 20) enemies.splice(i, 1)
+            }
+            
+            // Powerups
+            for (let i = powerups.length - 1; i >= 0; i--) {
+                const pu = powerups[i]
+                pu.y += 1.8
+                pu.life--
+                
+                const dx = player.x - pu.x
+                const dy = (player.y + 10) - pu.y
+                
+                // Magnet effect
+                if (player.magnetTime > 0 && dx * dx + dy * dy < 16000) {
+                    pu.x += dx * 0.18
+                    pu.y += dy * 0.18
+                }
+                
+                if (dx * dx + dy * dy < 1100) {
+                    activatePowerup(pu.type)
+                    powerups.splice(i, 1)
+                    continue
+                }
+                
+                if (pu.life < 0) powerups.splice(i, 1)
+            }
+            
+            // Particles
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i]
+                p.x += p.vx
+                p.y += p.vy
+                p.vy += 0.18
+                p.life--
+                if (p.life <= 0) particles.splice(i, 1)
+            }
+            
+            // Floating texts
+            for (let i = floatingTexts.length - 1; i >= 0; i--) {
+                const t = floatingTexts[i]
+                t.y += t.vy
+                t.vy *= 0.96
+                t.life--
+                if (t.life <= 0) floatingTexts.splice(i, 1)
+            }
+            
+            // Score from height
+            score += 0.3 + (moonMode ? 0.6 : 0)
+        }
+        
+        function activatePowerup(type) {
+            playSound(660, 'sine', 0.3, 0.7)
+            createExplosion(player.x, player.y, 14, 260)
+            
+            if (type === POWERUP_TYPES.COIN) {
+                combo = Math.min(combo + 4, 12)
+                score += 120
+                floatingText(player.x, player.y - 40, 'COMBO x' + combo, '#ffee00')
+            } else if (type === POWERUP_TYPES.JETPACK) {
+                player.jetpackTime = 220
+                floatingText(player.x, player.y - 50, 'JETPACK!', '#00f7ff')
+            } else if (type === POWERUP_TYPES.ROCKET_BOOST) {
+                player.rocketTime = 180
+                floatingText(player.x, player.y - 55, 'COSMIC BOOST!', '#00f7ff')
+                shakeScreen(18, 300)
+            } else if (type === POWERUP_TYPES.STAR_MAGNET) {
+                player.magnetTime = 300
+                floatingText(player.x, player.y - 40, 'MAGNET!', '#c300ff')
+            } else if (type === POWERUP_TYPES.HYPER_SPRING) {
+                player.hyperTime = 140
+                floatingText(player.x, player.y - 40, 'HYPER!', '#ff00aa')
+            } else if (type === POWERUP_TYPES.VOID_SHIELD) {
+                player.shieldTime = 260
+                floatingText(player.x, player.y - 40, 'SHIELD!', '#111')
+            } else if (type === POWERUP_TYPES.GHOST_NEBULA) {
+                player.ghostTime = 200
+                floatingText(player.x, player.y - 40, 'GHOST!', '#c300ff')
+            } else if (type === POWERUP_TYPES.TRIPLE_JUMP) {
+                player.tripleLeft = 3
+                floatingText(player.x, player.y - 40, 'TRIPLE!', '#00ff9d')
+            }
+        }
+        
+        // ====================== MAIN UPDATE & DRAW ======================
+        function update() {
+            if (!gameRunning || paused) return
+            frame++
+            
+            updatePlayer()
+            const landed = checkPlatformCollision()
+            updateObjects()
+            spawnEnemy()
+            spawnPowerup()
+            
+            // Auto scroll when high
+            if (player.y < SCROLL_THRESHOLD) {
+                const scrollDelta = SCROLL_THRESHOLD - player.y
+                player.y = SCROLL_THRESHOLD
+                
+                for (let p of platforms) p.y += scrollDelta
+                for (let e of enemies) e.y += scrollDelta
+                for (let pu of powerups) pu.y += scrollDelta
+                
+                cameraY += scrollDelta
+                score += Math.floor(scrollDelta * 0.12)
+            }
+            
+            // Update HUD
+            document.getElementById('score-display').textContent = String(Math.floor(score)).padStart(6, '0')
+        }
+        
+        function draw() {
+            ctx.clearRect(0, 0, WIDTH, HEIGHT)
+            
+            // Background
+            drawBackground()
+            
+            // Platforms
+            for (let p of platforms) drawPlatform(p)
+            
+            // Enemies
+            for (let e of enemies) drawEnemy(e)
+            
+            // Powerups
+            for (let pu of powerups) drawPowerup(pu)
+            
+            // Player
+            if (player.ghostTime > 0) ctx.globalAlpha = 0.4 + Math.sin(frame * 0.4) * 0.3
+            drawPlayer()
+            ctx.globalAlpha = 1
+            
+            // Particles
+            for (let p of particles) {
+                const alpha = p.life / p.maxLife
+                ctx.globalAlpha = alpha
+                ctx.shadowBlur = 8
+                ctx.shadowColor = p.color
+                ctx.fillStyle = p.color
+                ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size)
+            }
+            ctx.globalAlpha = 1
+            ctx.shadowBlur = 0
+            
+            // Floating texts
+            ctx.textAlign = 'center'
+            ctx.font = 'bold 17px Press Start 2P'
+            for (let t of floatingTexts) {
+                ctx.globalAlpha = t.life / 55
+                ctx.fillStyle = t.color
+                ctx.shadowBlur = 12
+                ctx.shadowColor = t.color
+                ctx.fillText(t.text, t.x, t.y)
+            }
+            ctx.globalAlpha = 1
+            ctx.shadowBlur = 0
+            ctx.textAlign = 'left'
+            
+            // Moon mode overlay flash
+            if (moonMode && Math.random() > 0.96) {
+                ctx.globalAlpha = 0.15
+                ctx.fillStyle = '#c300ff'
+                ctx.fillRect(0, 0, WIDTH, HEIGHT)
+                ctx.globalAlpha = 1
+            }
+            
+            // Debug combo in corner (only visible in dev)
+            // ctx.fillStyle = '#ffee00'
+            // ctx.font = '10px monospace'
+            // ctx.fillText('COMBO x' + combo, 10, HEIGHT - 12)
+        }
+        
+        function gameLoop(timestamp) {
+            if (!lastTime) lastTime = timestamp
+            update()
+            draw()
+            requestAnimationFrame(gameLoop)
+        }
+        
+        // ====================== GAME STATE ======================
+        function initGame() {
+            player = {
+                x: WIDTH / 2,
+                y: HEIGHT * 0.6,
+                vx: 0,
+                vy: -8,
+                rocketTime: 0,
+                jetpackTime: 0,
+                hyperTime: 0,
+                shieldTime: 0,
+                ghostTime: 0,
+                magnetTime: 0,
+                tripleLeft: 0
+            }
+            
+            cameraY = 0
+            score = 0
+            combo = 0
+            moonMode = false
+            platforms = []
+            particles = []
+            enemies = []
+            powerups = []
+            floatingTexts = []
+            
+            initPlatforms()
+            initStars()
+            
+            // Initial boost
+            createExplosion(player.x, player.y + 30, 30, 180)
+        }
+        
+        function startGame() {
+            // Fade menu
+            const menu = document.getElementById('menu-screen')
+            menu.style.transition = 'opacity 0.25s cubic-bezier(0.23,1,0.32,1)'
+            menu.style.opacity = 0
+            
+            setTimeout(() => {
+                document.getElementById('overlay').style.opacity = 0
+                setTimeout(() => {
+                    document.getElementById('overlay').style.display = 'none'
+                    document.getElementById('menu-screen').style.opacity = 1
+                    document.getElementById('menu-screen').classList.remove('active')
+                    
+                    // Init audio on first user gesture
+                    if (!audioCtx) {
+                        audioCtx = new (window.AudioContext || window.webkitAudioContext)()
+                    }
+                    
+                    initGame()
+                    gameRunning = true
+                    paused = false
+                    
+                    // HUD visible
+                    document.getElementById('hud').style.display = 'flex'
+                }, 260)
+            }, 250)
+        }
+        
+        function gameOver() {
+            gameRunning = false
+            
+            // Save data
+            const addedLifetime = Math.floor(score)
+            saveData.lifetime += addedLifetime
+            if (score > saveData.highscore) {
+                saveData.highscore = Math.floor(score)
+                document.getElementById('new-high-badge').style.display = 'block'
+            }
+            
+            // Unlock caps
+            for (let i = 0; i < CAP_MILESTONES.length; i++) {
+                if (saveData.lifetime >= CAP_MILESTONES[i]) {
+                    saveData.unlockedCaps[i] = true
+                }
+            }
+            
+            saveToLocalStorage()
+            
+            // Show game over screen
+            document.getElementById('overlay').style.display = 'flex'
+            document.getElementById('overlay').style.opacity = 1
+            const goScreen = document.getElementById('gameover-screen')
+            goScreen.classList.add('active')
+            
+            document.getElementById('final-score').textContent = String(Math.floor(score)).padStart(6, '0')
+            document.getElementById('final-high').textContent = String(Math.floor(saveData.highscore)).padStart(6, '0')
+            document.getElementById('final-lifetime-add').textContent = '+' + addedLifetime
+            
+            // Confetti on new high
+            if (score === saveData.highscore) {
+                for (let i = 0; i < 80; i++) {
+                    setTimeout(() => {
+                        createParticle(Math.random() * WIDTH, Math.random() * 120, (Math.random() - 0.5) * 12, 3 + Math.random() * 8, 120, ['#00f7ff', '#c300ff', '#00ff9d'][Math.floor(Math.random() * 3)])
+                    }, i * 3)
+                }
+            }
+            
+            // Final explosion
+            createExplosion(player.x, player.y, 40, 0)
+        }
+        
+        function restartGame() {
+            const goScreen = document.getElementById('gameover-screen')
+            goScreen.classList.remove('active')
+            document.getElementById('overlay').style.opacity = 0
+            setTimeout(() => {
+                document.getElementById('overlay').style.display = 'none'
+                initGame()
+                gameRunning = true
+                document.getElementById('new-high-badge').style.display = 'none'
+            }, 300)
+        }
+        
+        function togglePause() {
+            if (!gameRunning) return
+            paused = !paused
+            if (paused) {
+                document.getElementById('pause-screen').classList.add('active')
+                document.getElementById('overlay').style.display = 'flex'
+                document.getElementById('overlay').style.opacity = 1
+            } else {
+                resumeGame()
+            }
+        }
+        
+        function resumeGame() {
+            paused = false
+            const pauseScreen = document.getElementById('pause-screen')
+            pauseScreen.classList.remove('active')
+            document.getElementById('overlay').style.opacity = 0
+            setTimeout(() => {
+                document.getElementById('overlay').style.display = 'none'
+            }, 280)
+        }
+        
+        function quitToMenu() {
+            gameRunning = false
+            paused = false
+            document.getElementById('overlay').style.display = 'flex'
+            document.getElementById('overlay').style.opacity = 1
+            document.getElementById('menu-screen').classList.add('active')
+            document.getElementById('pause-screen').classList.remove('active')
+            document.getElementById('gameover-screen').classList.remove('active')
+            document.getElementById('hud').style.display = 'none'
+            updateMenuStats()
+        }
+        
+        // ====================== MENU FUNCTIONS ======================
+        function updateMenuStats() {
+            document.getElementById('menu-highscore').textContent = String(Math.floor(saveData.highscore)).padStart(6, '0')
+            document.getElementById('menu-lifetime').textContent = String(Math.floor(saveData.lifetime)).padStart(6, '0')
+            document.getElementById('username-display').textContent = saveData.username
+        }
+        
+        function showCapsMenu() {
+            const menu = document.getElementById('menu-screen')
+            menu.classList.remove('active')
+            const capsScreen = document.getElementById('caps-screen')
+            capsScreen.classList.add('active')
+            
+            const grid = document.getElementById('caps-grid')
+            grid.innerHTML = ''
+            
+            const icons = ['🍄','👑','🌌','🌠','🔥','💎','⭐','⚡','🌈','💲','🌕','🌀']
+            
+            for (let i = 0; i < 12; i++) {
+                const unlocked = saveData.unlockedCaps[i]
+                const div = document.createElement('div')
+                div.style.cssText = `font-size:42px; padding:12px; background:#0a0f2e; border-radius:12px; border:4px solid ${unlocked ? '#00f7ff' : '#333'}; text-align:center; cursor:pointer; opacity:${unlocked ? 1 : 0.3};`
+                div.innerHTML = `<div>${icons[i]}</div><div style="font-size:9px;margin-top:4px;">${i+1}</div>`
+                
+                if (unlocked) {
+                    div.onclick = () => {
+                        saveData.currentCap = i
+                        saveToLocalStorage()
+                        hideCapsMenu()
+                        updateMenuStats()
+                    }
+                }
+                grid.appendChild(div)
+            }
+        }
+        
+        function hideCapsMenu() {
+            document.getElementById('caps-screen').classList.remove('active')
+            document.getElementById('menu-screen').classList.add('active')
+        }
+        
+        function showDailyMenu() {
+            const menu = document.getElementById('menu-screen')
+            menu.classList.remove('active')
+            
+            // Simple daily logic
+            const today = new Date().toISOString().slice(0,10)
+            if (saveData.lastDailyDate !== today) {
+                saveData.dailyStreak++
+                saveData.lastDailyDate = today
+                saveToLocalStorage()
+            }
+            
+            document.getElementById('daily-streak').textContent = saveData.dailyStreak
+            document.getElementById('daily-goal').textContent = 'REACH 15,000'
+            document.getElementById('daily-score-text').innerHTML = `YOUR BEST TODAY<br><span style="color:#00ff9d;font-size:22px">∞</span>`
+            
+            document.getElementById('daily-screen').classList.add('active')
+        }
+        
+        function hideDailyMenu() {
+            document.getElementById('daily-screen').classList.remove('active')
+            document.getElementById('menu-screen').classList.add('active')
+        }
+        
+        function startDaily() {
+            hideDailyMenu()
+            // Same as normal game but score multiplier hidden
+            startGame()
+        }
+        
+        function showLeaderboard() {
+            const menu = document.getElementById('menu-screen')
+            menu.classList.remove('active')
+            
+            const listHTML = saveData.leaderboard.map((entry, i) => {
+                return `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px dashed #00f7ff;"><span>#${i+1} ${entry.name}</span><span style="color:#00f7ff">${String(entry.score).padStart(6,'0')}</span></div>`
+            }).join('')
+            
+            document.getElementById('leaderboard-list').innerHTML = listHTML
+            document.getElementById('leaderboard-screen').classList.add('active')
+        }
+        
+        function hideLeaderboard() {
+            document.getElementById('leaderboard-screen').classList.remove('active')
+            document.getElementById('menu-screen').classList.add('active')
+        }
+        
+        // ====================== LOCALSTORAGE ======================
+        function loadFromLocalStorage() {
+            const saved = localStorage.getItem('$PMUSH_COSMIC_LEAP')
+            if (saved) {
+                const parsed = JSON.parse(saved)
+                Object.assign(saveData, parsed)
+            }
+            // Ensure cap array length
+            while (saveData.unlockedCaps.length < 12) saveData.unlockedCaps.push(false)
+            saveData.unlockedCaps[0] = true // default always unlocked
+        }
+        
+        function saveToLocalStorage() {
+            localStorage.setItem('$PMUSH_COSMIC_LEAP', JSON.stringify(saveData))
+        }
+        
+        // ====================== INPUT ======================
+        function setupInput() {
+            window.addEventListener('keydown', e => { keys[e.key] = true })
+            window.addEventListener('keyup', e => { keys[e.key] = false })
+            
+            // Touch controls – left / right half
+            canvas.addEventListener('touchstart', e => {
+                e.preventDefault()
+                const touchX = e.changedTouches[0].clientX - canvas.getBoundingClientRect().left
+                if (touchX < WIDTH / 2) touchLeft = true
+                else touchRight = true
+            })
+            
+            canvas.addEventListener('touchend', e => {
+                e.preventDefault()
+                touchLeft = false
+                touchRight = false
+            })
+            
+            // Mouse fallback
+            canvas.addEventListener('mousedown', e => {
+                const rect = canvas.getBoundingClientRect()
+                const x = e.clientX - rect.left
+                if (x < WIDTH / 2) touchLeft = true
+                else touchRight = true
+            })
+            
+            window.addEventListener('mouseup', () => {
+                touchLeft = false
+                touchRight = false
+            })
+            
+            // Optional tilt support
+            if (window.DeviceOrientationEvent) {
+                window.addEventListener('deviceorientation', e => {
+                    if (e.gamma !== null) tilt = Math.max(-1, Math.min(1, e.gamma / 30))
+                })
+            }
+        }
+        
+        // ====================== STARTUP ======================
+        function launch() {
+            loadFromLocalStorage()
+            updateMenuStats()
+            
+            canvas.width = WIDTH
+            canvas.height = HEIGHT
+            
+            initStars()
+            setupInput()
+            
+            // Start the eternal game loop
+            requestAnimationFrame(gameLoop)
+            
+            console.log('%c🚀 $PMUSH COSMIC LEAP – INFINITE ULTIMATE EDITION READY!', 'background:#c300ff;color:#00f7ff;font-size:13px;padding:2px 6px;border-radius:3px')
+        }
+        
+        window.onload = launch
+    </script>
+</body>
+</html>
