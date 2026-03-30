@@ -1,0 +1,1216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>$PMUSH COSMIC LEAP – INFINITE ULTIMATE EDITION</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+        
+        :root {
+            --neon-cyan: #00f7ff;
+            --neon-purple: #c300ff;
+            --neon-green: #00ff9d;
+        }
+        
+        * { margin:0; padding:0; box-sizing:border-box; }
+        
+        body {
+            background: #0a0f2e;
+            color: white;
+            font-family: 'Press Start 2P', system-ui;
+            overflow: hidden;
+            touch-action: none;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+        
+        canvas {
+            display: block;
+            background: #0a0f2e;
+            box-shadow: 
+                0 0 40px var(--neon-cyan),
+                0 0 80px var(--neon-purple),
+                inset 0 0 60px rgba(0, 247, 255, 0.3);
+            border: 8px solid #1a0033;
+            image-rendering: pixelated;
+        }
+        
+        #overlay {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 0.25s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+        
+        .screen {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(10, 15, 46, 0.95);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            pointer-events: all;
+            text-align: center;
+            padding: 20px;
+            box-shadow: 0 0 60px var(--neon-purple);
+        }
+        
+        .screen.active {
+            display: flex;
+            animation: screenPop 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+        }
+        
+        @keyframes screenPop {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        
+        h1 {
+            font-size: 52px;
+            line-height: 1.05;
+            margin-bottom: 12px;
+            background: linear-gradient(90deg, var(--neon-cyan), var(--neon-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 
+                0 0 20px var(--neon-cyan),
+                0 0 40px var(--neon-purple),
+                0 0 60px var(--neon-purple);
+            letter-spacing: 6px;
+            padding: 10px 20px;
+            border-radius: 12px;
+            background: rgba(26, 0, 51, 0.7);
+        }
+        
+        .subtitle {
+            font-size: 18px;
+            color: var(--neon-green);
+            text-shadow: 0 0 15px var(--neon-green);
+            margin-bottom: 40px;
+            animation: pulse 2s infinite;
+        }
+        
+        button {
+            font-family: 'Press Start 2P', system-ui;
+            font-size: 24px;
+            padding: 18px 42px;
+            margin: 12px;
+            background: #1a0033;
+            color: var(--neon-cyan);
+            border: 6px solid var(--neon-cyan);
+            border-radius: 12px;
+            box-shadow: 
+                0 0 30px var(--neon-cyan),
+                0 0 60px var(--neon-purple);
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        
+        button:hover {
+            transform: scale(1.1) translateY(-4px);
+            box-shadow: 
+                0 0 40px 10px var(--neon-cyan),
+                0 0 80px 20px var(--neon-purple);
+        }
+        
+        #hud {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            display: flex;
+            justify-content: space-between;
+            pointer-events: none;
+            z-index: 20;
+            font-size: 22px;
+            font-family: 'Press Start 2P', system-ui;
+        }
+        
+        .hud-score {
+            background: rgba(10,15,46,0.8);
+            padding: 8px 20px;
+            border-radius: 9999px;
+            border: 4px solid var(--neon-cyan);
+            box-shadow: 0 0 20px var(--neon-cyan);
+            color: white;
+        }
+        
+        .pause-btn {
+            width: 54px;
+            height: 54px;
+            background: rgba(10,15,46,0.8);
+            border: 4px solid var(--neon-purple);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            box-shadow: 0 0 20px var(--neon-purple);
+            cursor: pointer;
+            pointer-events: all;
+        }
+        
+        .modal {
+            background: #1a0033;
+            border: 8px solid var(--neon-green);
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 340px;
+            box-shadow: 0 0 50px var(--neon-green);
+            animation: modalPop 0.3s ease;
+        }
+        
+        .modal h2 {
+            color: var(--neon-cyan);
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas" width="400" height="700"></canvas>
+    
+    <!-- HUD -->
+    <div id="hud">
+        <div id="score-display" class="hud-score">000000</div>
+        <div onclick="togglePause()" class="pause-btn" id="pause-button">⏸</div>
+    </div>
+    
+    <!-- OVERLAY SCREENS -->
+    <div id="overlay">
+        <div id="menu-screen" class="screen active">
+            <div style="text-align:center; margin-bottom:20px;">
+                <h1>$PMUSH<br>COSMIC LEAP</h1>
+                <div class="subtitle">INFINITE ULTIMATE EDITION</div>
+                <div style="font-size:14px; color:#00ff9d; margin-top:-8px; letter-spacing:6px;">TO THE MOON 🌕</div>
+            </div>
+            
+            <button onclick="startGame()">PLAY</button>
+            <button onclick="showCapsMenu()">CAPS</button>
+            <button onclick="showDailyMenu()">DAILY</button>
+            <button onclick="showLeaderboard()">LEADERBOARD</button>
+            <button onclick="setUsername()" style="font-size:18px; padding:12px 30px;">SET NAME</button>
+            
+            <div style="margin-top:30px; font-size:12px; opacity:0.7;">
+                HIGH SCORE <span id="menu-highscore" style="color:#00f7ff;">000000</span><br>
+                LIFETIME <span id="menu-lifetime" style="color:#c300ff;">000000</span>
+            </div>
+            
+            <div id="username-display" style="position:absolute; bottom:30px; font-size:14px; color:#00ff9d;">
+                SHROOMKING
+            </div>
+        </div>
+        
+        <!-- CAPS MENU -->
+        <div id="caps-screen" class="screen">
+            <div class="modal">
+                <h2 style="text-align:center;">EPIC CAPS</h2>
+                <div id="caps-grid" style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin:20px 0;"></div>
+                <button onclick="hideCapsMenu()" style="width:100%; font-size:18px; padding:12px;">BACK</button>
+                <div style="font-size:10px; text-align:center; margin-top:15px; color:#00f7ff;">UNLOCK WITH LIFETIME SCORE</div>
+            </div>
+        </div>
+        
+        <!-- DAILY MENU -->
+        <div id="daily-screen" class="screen">
+            <div class="modal">
+                <h2>DAILY CHALLENGE</h2>
+                <div style="text-align:center; margin:20px 0; font-size:18px;">
+                    TODAY'S GOAL<br>
+                    <span id="daily-goal" style="font-size:32px; color:#00ff9d;">∞</span>
+                </div>
+                <div style="background:#0a0f2e; padding:15px; border-radius:12px; margin:20px 0;">
+                    STREAK 🔥 <span id="daily-streak" style="color:#ff00aa; font-size:28px;">0</span> DAYS
+                </div>
+                <div id="daily-score-text" style="font-size:14px; text-align:center; margin-bottom:20px;"></div>
+                <button onclick="startDaily()" style="width:100%; background:#c300ff; border-color:#00f7ff;">JUMP THE DAILY</button>
+                <button onclick="hideDailyMenu()" style="width:100%; margin-top:10px;">BACK TO MENU</button>
+            </div>
+        </div>
+        
+        <!-- LEADERBOARD MENU -->
+        <div id="leaderboard-screen" class="screen">
+            <div class="modal">
+                <h2>GALACTIC TOP 10</h2>
+                <div id="leaderboard-list" style="width:100%; text-align:left; font-size:15px; line-height:2;"></div>
+                <button onclick="hideLeaderboard()" style="width:100%; margin-top:20px;">BACK</button>
+            </div>
+        </div>
+        
+        <!-- PAUSE MENU -->
+        <div id="pause-screen" class="screen">
+            <div class="modal">
+                <h2>PAUSED</h2>
+                <button onclick="resumeGame()" style="width:100%;">RESUME</button>
+                <button onclick="quitToMenu()" style="width:100%; margin-top:10px;">QUIT TO MENU</button>
+            </div>
+        </div>
+        
+        <!-- GAME OVER -->
+        <div id="gameover-screen" class="screen">
+            <div class="modal">
+                <h2 id="gameover-title" style="color:#ff00aa;">CRASHED INTO THE VOID</h2>
+                <div style="margin:20px 0;">
+                    <div style="font-size:14px;">SCORE</div>
+                    <div id="final-score" style="font-size:48px; color:var(--neon-cyan); text-shadow:0 0 30px;">000000</div>
+                </div>
+                <div style="display:flex; justify-content:space-around; margin:15px 0; font-size:13px;">
+                    <div>HIGH <span id="final-high" style="color:#00ff9d;"></span></div>
+                    <div>LIFETIME +<span id="final-lifetime-add" style="color:#c300ff;"></span></div>
+                </div>
+                <button onclick="restartGame()" style="width:100%;">JUMP AGAIN</button>
+                <button onclick="quitToMenu()" style="width:100%; margin-top:10px; background:#1a0033;">MENU</button>
+                
+                <div id="new-high-badge" style="display:none; position:absolute; top:30px; right:30px; background:#00ff9d; color:#0a0f2e; padding:6px 20px; border-radius:9999px; font-size:14px; transform:rotate(12deg); box-shadow:0 0 20px #00ff9d;">
+                    NEW HIGH!
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // ====================== CORE GAME ENGINE ======================
+        const canvas = document.getElementById('canvas')
+        const ctx = canvas.getContext('2d')
+        
+        // Game constants
+        const WIDTH = 400
+        const HEIGHT = 700
+        const GRAVITY = 0.42
+        const BOUNCE = -15.8
+        const MOVE_SPEED = 2.1
+        const FRICTION = 0.89
+        const SCROLL_THRESHOLD = HEIGHT * 0.33
+        
+        // Game variables
+        let player = {}
+        let platforms = []
+        let particles = []
+        let stars = []
+        let powerups = []
+        let floatingTexts = []
+        let cameraY = 0
+        let score = 0
+        let combo = 0
+        let moonMode = false
+        let gameRunning = false
+        let paused = false
+        let frame = 0
+        
+        // Input
+        let keys = {}
+        let touchLeft = false
+        let touchRight = false
+        let tilt = 0
+        
+        // Audio
+        let audioCtx
+        let soundEnabled = true
+        
+        // Persistent data
+        let saveData = {
+            highscore: 0,
+            lifetime: 0,
+            username: "SHROOMKING",
+            unlockedCaps: [true, false, false, false, false, false, false, false, false, false, false, false],
+            dailyStreak: 0,
+            lastDailyDate: null,
+            leaderboard: [
+                {name:"MOONLORD", score:124800},
+                {name:"NEBULA420", score:98750},
+                {name:"STARSHROOM", score:87600},
+                {name:"VOIDKING", score:65400},
+                {name:"COSMICFROG", score:54320}
+            ],
+            currentCap: 0
+        }
+        
+        const CAP_MILESTONES = [0, 8000, 18000, 35000, 60000, 95000, 140000, 210000, 300000, 450000, 700000, 1000000]
+        
+        const PLATFORM_TYPES = {
+            NORMAL: 0,
+            MOVING: 1,
+            BREAKABLE: 2,
+            DISAPPEARING: 3
+        }
+        
+        const POWERUP_TYPES = {
+            COIN: 0,
+            JETPACK: 1,
+            STAR_MAGNET: 2,
+            HYPER_SPRING: 3,
+            VOID_SHIELD: 4,
+            GHOST_NEBULA: 5,
+            TRIPLE_JUMP: 6,
+            ROCKET_BOOST: 7
+        }
+        
+        // ====================== UTILITIES ======================
+        function playSound(freq, type = 'sine', duration = 0.1, volume = 0.4) {
+            if (!soundEnabled || !audioCtx) return
+            const osc = audioCtx.createOscillator()
+            const gain = audioCtx.createGain()
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime)
+            osc.type = type
+            gain.gain.value = volume
+            osc.connect(gain).connect(audioCtx.destination)
+            osc.start()
+            gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + duration)
+            osc.stop(audioCtx.currentTime + duration + 0.1)
+        }
+        
+        function createParticle(x, y, vx, vy, life, color, size = 6) {
+            if (particles.length > 110) particles.splice(0, 20) // performance cap
+            particles.push({ x, y, vx, vy, life: life || 40, maxLife: life || 40, color, size })
+        }
+        
+        function createExplosion(x, y, count = 22, hueShift = 0) {
+            for (let i = 0; i < count; i++) {
+                const angle = Math.random() * Math.PI * 2
+                const vel = 2.8 + Math.random() * 5.5
+                const c = `hsl(${hueShift + Math.random() * 70}, 100%, 75%)`
+                createParticle(x, y, Math.cos(angle) * vel, Math.sin(angle) * vel - 3, 38 + Math.random() * 28, c, 5 + Math.random() * 6)
+            }
+        }
+        
+        let shakeAmount = 0
+        function shakeScreen(amount, duration) {
+            shakeAmount = Math.max(shakeAmount, amount)
+            setTimeout(() => { shakeAmount = 0 }, duration)
+        }
+        
+        function floatingText(x, y, text, color = '#00f7ff') {
+            floatingTexts.push({ x, y, text, life: 58, vy: -2, color })
+        }
+        
+        // ====================== PLAYER DRAW ======================
+        function drawPlayer() {
+            const p = player
+            ctx.save()
+            ctx.translate(p.x, p.y)
+            
+            const squash = Math.max(0.75, 1 - p.vy * 0.014)
+            ctx.scale(1, squash)
+            
+            ctx.shadowBlur = 18
+            ctx.shadowColor = '#8a2be2'
+            ctx.fillStyle = '#6b2fa8'
+            ctx.beginPath()
+            ctx.ellipse(0, 38, 22, 14, 0, 0, Math.PI * 2)
+            ctx.fill()
+            ctx.fillRect(-18, 22, 36, 22)
+            
+            ctx.shadowBlur = 0
+            ctx.fillStyle = 'rgba(255,255,255,0.25)'
+            ctx.fillRect(-14, 26, 28, 6)
+            
+            ctx.fillStyle = '#f8f8f8'
+            ctx.shadowBlur = 14
+            ctx.shadowColor = '#fff'
+            ctx.fillRect(-13, 8, 26, 34)
+            
+            const capHue = moonMode ? 270 : 195
+            ctx.fillStyle = `hsl(${capHue}, 88%, 48%)`
+            ctx.shadowBlur = 28
+            ctx.shadowColor = '#00ffdd'
+            ctx.beginPath()
+            ctx.ellipse(0, 8, 27, 19, 0, 0, Math.PI * 2)
+            ctx.fill()
+            
+            ctx.fillStyle = '#ffffff'
+            ctx.shadowBlur = 0
+            ctx.beginPath(); ctx.arc(-13, 3, 4.5, 0, Math.PI * 2); ctx.fill()
+            ctx.beginPath(); ctx.arc(11, 2, 3.8, 0, Math.PI * 2); ctx.fill()
+            ctx.beginPath(); ctx.arc(-5, -6, 5.2, 0, Math.PI * 2); ctx.fill()
+            ctx.beginPath(); ctx.arc(15, -4, 3.2, 0, Math.PI * 2); ctx.fill()
+            
+            ctx.fillStyle = '#111111'
+            ctx.shadowBlur = 8
+            ctx.shadowColor = '#000'
+            ctx.beginPath(); ctx.ellipse(-13, 4, 7.5, 9, 0, 0, Math.PI * 2); ctx.fill()
+            ctx.beginPath(); ctx.ellipse(13, 4, 7.5, 9, 0, 0, Math.PI * 2); ctx.fill()
+            
+            ctx.fillStyle = '#ffffff'
+            ctx.shadowBlur = 0
+            ctx.beginPath(); ctx.arc(-15, 2, 3, 0, Math.PI * 2); ctx.fill()
+            ctx.beginPath(); ctx.arc(11, 2, 3, 0, Math.PI * 2); ctx.fill()
+            
+            ctx.strokeStyle = '#111'
+            ctx.lineWidth = 2.5
+            ctx.beginPath()
+            ctx.arc(0, 13, 6, 0.3, Math.PI - 0.3)
+            ctx.stroke()
+            
+            ctx.shadowBlur = 24
+            ctx.shadowColor = '#c300ff'
+            ctx.fillStyle = '#c300ff'
+            ctx.beginPath()
+            ctx.moveTo(-9, -8)
+            ctx.lineTo(9, -8)
+            ctx.lineTo(0, -22)
+            ctx.closePath()
+            ctx.fill()
+            
+            const pulse = Math.sin(frame * 0.28) * 0.4 + 1.1
+            if (player.rocketTime > 0) {
+                ctx.shadowBlur = 45
+                ctx.shadowColor = '#00f7ff'
+                ctx.fillStyle = '#00f7ff'
+                ctx.beginPath()
+                ctx.arc(0, -15, 9 * pulse, 0, Math.PI * 2)
+                ctx.fill()
+                
+                ctx.shadowBlur = 65
+                ctx.shadowColor = '#ff0088'
+                ctx.fillStyle = '#ff7700'
+                ctx.beginPath()
+                ctx.moveTo(-7, -8)
+                ctx.lineTo(0, -44 - Math.random() * 14)
+                ctx.lineTo(7, -8)
+                ctx.fill()
+            } else {
+                ctx.shadowBlur = 28
+                ctx.shadowColor = '#c300ff'
+                ctx.fillStyle = '#c300ff'
+                ctx.beginPath()
+                ctx.arc(0, -15, 7.5 * pulse, 0, Math.PI * 2)
+                ctx.fill()
+                
+                ctx.fillStyle = '#ffffff'
+                ctx.shadowBlur = 0
+                ctx.beginPath()
+                ctx.arc(0, -15, 3.5, 0, Math.PI * 2)
+                ctx.fill()
+            }
+            
+            const capIndex = saveData.currentCap
+            if (capIndex > 0) {
+                ctx.shadowBlur = 18
+                if (capIndex === 1) {
+                    ctx.fillStyle = '#00f7ff'
+                    ctx.fillRect(-19, -34, 38, 7)
+                } else if (capIndex === 11) {
+                    ctx.shadowBlur = 50
+                    ctx.shadowColor = '#111'
+                    ctx.fillStyle = '#111'
+                    ctx.beginPath()
+                    ctx.arc(0, -32, 19, 0, Math.PI * 2)
+                    ctx.fill()
+                }
+            }
+            
+            ctx.restore()
+        }
+        
+        // ====================== BACKGROUND ======================
+        function initStars() {
+            stars = []
+            for (let i = 0; i < 220; i++) { // reduced for performance
+                stars.push({
+                    x: Math.random() * WIDTH,
+                    y: Math.random() * HEIGHT * 3.2,
+                    size: Math.random() * 3.2 + 0.9,
+                    speed: Math.random() * 0.7 + 0.25,
+                    alphaSpeed: Math.random() * 0.09 + 0.04
+                })
+            }
+        }
+        
+        function drawBackground() {
+            const grad = ctx.createLinearGradient(0, 0, 0, HEIGHT)
+            grad.addColorStop(0, moonMode ? '#3d0066' : '#0a0f2e')
+            grad.addColorStop(1, '#1a0033')
+            ctx.fillStyle = grad
+            ctx.fillRect(0, 0, WIDTH, HEIGHT)
+            
+            ctx.save()
+            ctx.globalAlpha = moonMode ? 0.75 : 0.4
+            const nebula = ctx.createRadialGradient(WIDTH * 0.28, HEIGHT * 0.35, 20, WIDTH * 0.75, HEIGHT * 0.85, 340)
+            nebula.addColorStop(0, '#c300ff')
+            nebula.addColorStop(1, 'transparent')
+            ctx.fillStyle = nebula
+            ctx.fillRect(0, 0, WIDTH, HEIGHT)
+            ctx.restore()
+            
+            ctx.shadowBlur = 5
+            const time = Date.now() * 0.001
+            for (let star of stars) {
+                const twinkle = Math.sin(time * star.alphaSpeed * 14 + star.x) * 0.5 + 0.5
+                ctx.globalAlpha = 0.7 + twinkle * 0.3
+                ctx.shadowColor = moonMode ? '#c300ff' : '#00f7ff'
+                ctx.fillStyle = '#fff'
+                ctx.fillRect(star.x, (star.y - cameraY * star.speed) % (HEIGHT * 3.2), star.size, star.size)
+            }
+            ctx.globalAlpha = 1
+            ctx.shadowBlur = 0
+        }
+        
+        // ====================== PLATFORM SYSTEM (LESS + SMALLER + FASTER) ======================
+        function generatePlatform(baseY) {
+            const difficulty = Math.min(1, score / 22000)
+            let w = Math.max(32, 82 - Math.floor(score / 800)) // much smaller
+            let type = PLATFORM_TYPES.NORMAL
+            let vx = 0
+            
+            if (difficulty > 0.25 && Math.random() < 0.18) type = PLATFORM_TYPES.MOVING
+            else if (difficulty > 0.45 && Math.random() < 0.32) type = PLATFORM_TYPES.BREAKABLE
+            else if (difficulty > 0.65 && Math.random() < 0.25) type = PLATFORM_TYPES.DISAPPEARING
+            
+            if (type === PLATFORM_TYPES.MOVING) {
+                vx = (Math.random() > 0.5 ? 2.4 : -2.4) * (1 + difficulty * 2.2) // faster moving
+                w = Math.max(34, 52 - Math.floor(score / 1400))
+            }
+            
+            platforms.push({
+                x: Math.random() * (WIDTH - w),
+                y: baseY,
+                width: w,
+                height: 18,
+                type: type,
+                vx: vx,
+                life: type === PLATFORM_TYPES.DISAPPEARING ? 110 : 9999,
+                broken: false
+            })
+        }
+        
+        function initPlatforms() {
+            platforms = []
+            let y = HEIGHT - 60
+            for (let i = 0; i < 14; i++) { // fewer initial platforms
+                generatePlatform(y)
+                y -= 52 + Math.random() * 18 // larger gaps
+            }
+            platforms[0].y = player.y + 38
+        }
+        
+        function drawPlatform(p) {
+            if (p.broken) return
+            ctx.save()
+            ctx.shadowBlur = 18 // slightly reduced
+            let baseColor = '#00ff9d'
+            
+            if (p.type === PLATFORM_TYPES.MOVING) {
+                ctx.shadowColor = '#00f7ff'
+                baseColor = '#00f7ff'
+            } else if (p.type === PLATFORM_TYPES.BREAKABLE) {
+                ctx.shadowColor = '#ff8800'
+                baseColor = '#ff8800'
+            } else if (p.type === PLATFORM_TYPES.DISAPPEARING) {
+                ctx.globalAlpha = Math.max(0.3, p.life / 110)
+                ctx.shadowColor = '#c300ff'
+                baseColor = '#c300ff'
+            }
+            
+            ctx.fillStyle = baseColor
+            ctx.fillRect(p.x, p.y, p.width, p.height)
+            
+            ctx.shadowBlur = 0
+            ctx.fillStyle = 'rgba(255,255,255,0.85)'
+            ctx.fillRect(p.x + 3, p.y, p.width - 6, 4)
+            ctx.restore()
+        }
+        
+        // ====================== POWER-UPS (ROCKET MUCH RARER) ======================
+        function spawnPowerup() {
+            if (Math.random() < 0.028 + score / 70000 && platforms.length > 5) {
+                const plat = platforms[Math.floor(Math.random() * (platforms.length - 2)) + 2]
+                let type = Math.floor(Math.random() * Object.keys(POWERUP_TYPES).length)
+                // Rocket is now significantly rarer
+                if (type === POWERUP_TYPES.ROCKET_BOOST && Math.random() < 0.65) return
+                
+                powerups.push({
+                    x: plat.x + Math.random() * plat.width,
+                    y: plat.y - 32,
+                    type: type,
+                    vy: 0,
+                    life: 280
+                })
+            }
+        }
+        
+        function drawPowerup(pu) {
+            ctx.save()
+            ctx.translate(pu.x, pu.y)
+            const bob = Math.sin(frame * 0.22) * 5
+            
+            if (pu.type === POWERUP_TYPES.COIN) {
+                ctx.shadowBlur = 35
+                ctx.shadowColor = '#ffee00'
+                ctx.fillStyle = '#ffee00'
+                ctx.fillRect(-11, -11 + bob, 22, 22)
+                ctx.fillStyle = '#111'
+                ctx.font = 'bold 18px Press Start 2P'
+                ctx.fillText('$', -6, 6 + bob)
+            } else if (pu.type === POWERUP_TYPES.ROCKET_BOOST) {
+                ctx.shadowBlur = 55
+                ctx.shadowColor = '#00f7ff'
+                ctx.fillStyle = '#00f7ff'
+                ctx.beginPath()
+                ctx.moveTo(0, -18 + bob)
+                ctx.lineTo(-13, 14 + bob)
+                ctx.lineTo(13, 14 + bob)
+                ctx.fill()
+                ctx.fillStyle = '#ff00aa'
+                ctx.fillRect(-5, 11 + bob, 10, 14)
+            } else {
+                ctx.shadowBlur = 32
+                ctx.shadowColor = '#c300ff'
+                ctx.fillStyle = '#c300ff'
+                ctx.fillRect(-11, -11 + bob, 22, 22)
+            }
+            ctx.restore()
+        }
+        
+        function activatePowerup(type) {
+            playSound(720, 'sine', 0.35, 0.75)
+            createExplosion(player.x, player.y - 12, 22, 260)
+            
+            if (type === POWERUP_TYPES.COIN) {
+                combo = Math.min(combo + 6, 18)
+                score += 180
+                floatingText(player.x, player.y - 48, 'COMBO x' + combo, '#ffee00')
+            } else if (type === POWERUP_TYPES.JETPACK) {
+                player.jetpackTime = 240
+                floatingText(player.x, player.y - 58, 'JETPACK!', '#00f7ff')
+            } else if (type === POWERUP_TYPES.ROCKET_BOOST) {
+                player.rocketTime = 102
+                floatingText(player.x, player.y - 62, 'COSMIC ROCKET!', '#00f7ff')
+                shakeScreen(14, 220)
+            } else if (type === POWERUP_TYPES.STAR_MAGNET) {
+                player.magnetTime = 340
+                floatingText(player.x, player.y - 48, 'MAGNET!', '#c300ff')
+            } else if (type === POWERUP_TYPES.HYPER_SPRING) {
+                player.hyperTime = 160
+                floatingText(player.x, player.y - 48, 'HYPER!', '#ff00aa')
+            } else if (type === POWERUP_TYPES.VOID_SHIELD) {
+                player.shieldTime = 280
+                floatingText(player.x, player.y - 48, 'SHIELD!', '#111')
+            } else if (type === POWERUP_TYPES.GHOST_NEBULA) {
+                player.ghostTime = 220
+                floatingText(player.x, player.y - 48, 'GHOST!', '#c300ff')
+            } else if (type === POWERUP_TYPES.TRIPLE_JUMP) {
+                player.tripleLeft = 4
+                floatingText(player.x, player.y - 48, 'TRIPLE!', '#00ff9d')
+            }
+        }
+        
+        // ====================== COLLISION & PHYSICS ======================
+        function checkPlatformCollision() {
+            const pBottom = player.y + 26
+            const pOldBottom = player.y + 26 - player.vy
+            
+            for (let i = 0; i < platforms.length; i++) {
+                const p = platforms[i]
+                if (p.broken) continue
+                
+                if (player.vy > 0 &&
+                    pOldBottom <= p.y &&
+                    pBottom >= p.y &&
+                    player.x + 18 > p.x &&
+                    player.x - 18 < p.x + p.width) {
+                    
+                    player.y = p.y - 26
+                    player.vy = BOUNCE
+                    
+                    createExplosion(player.x, player.y + 26, 20, 120)
+                    playSound(280, 'triangle', 0.12, 0.85)
+                    playSound(440, 'sine', 0.09, 0.65)
+                    
+                    combo++
+                    score += Math.floor(12 * (1 + combo * 0.35))
+                    
+                    if (Math.abs(player.vy) > 17) {
+                        score += 220
+                        floatingText(player.x, player.y - 32, '+220', '#00ff9d')
+                        shakeScreen(11, 110)
+                    }
+                    
+                    if (p.type === PLATFORM_TYPES.BREAKABLE) {
+                        p.broken = true
+                        createExplosion(p.x + p.width / 2, p.y + 8, 24, 30)
+                    }
+                    if (p.type === PLATFORM_TYPES.DISAPPEARING) p.life = 28
+                    
+                    if (player.hyperTime > 0) {
+                        player.vy = BOUNCE * 1.65
+                        createExplosion(player.x, player.y + 12, 34, 210)
+                    }
+                    
+                    return true
+                }
+            }
+            return false
+        }
+        
+        function updatePlayer() {
+            let move = 0
+            if (keys['ArrowLeft'] || touchLeft) move = -1
+            if (keys['ArrowRight'] || touchRight) move = 1
+            if (tilt) move = tilt * 1.9
+            
+            player.vx += move * MOVE_SPEED
+            player.vx *= FRICTION
+            if (Math.abs(player.vx) > 9.5) player.vx = Math.sign(player.vx) * 9.5
+            
+            player.vy += GRAVITY
+            player.x += player.vx
+            player.y += player.vy
+            
+            if (player.x < -26) player.x = WIDTH + 26
+            if (player.x > WIDTH + 26) player.x = -26
+            
+            if (player.rocketTime > 0) {
+                player.rocketTime--
+                player.vy -= 0.42
+                if (frame % 3 === 0) createParticle(player.x, player.y + 32, (Math.random() - 0.5) * 3.5, 5 + Math.random() * 5, 24, '#ff8800')
+            }
+            
+            if (player.jetpackTime > 0) player.jetpackTime--
+            if (player.hyperTime > 0) player.hyperTime--
+            if (player.shieldTime > 0) player.shieldTime--
+            if (player.ghostTime > 0) player.ghostTime--
+            if (player.magnetTime > 0) player.magnetTime--
+            
+            if (player.tripleLeft > 0 && player.vy > 0 && checkPlatformCollision()) {
+                player.tripleLeft--
+                player.vy = BOUNCE * 1.48
+            }
+            
+            if (score > 10000 && !moonMode) {
+                moonMode = true
+                shakeScreen(24, 650)
+                playSound(130, 'sine', 1.3, 0.35)
+                floatingText(WIDTH / 2, 160, 'MOON MODE!', '#c300ff')
+            }
+            
+            if (player.y > HEIGHT + 90) gameOver()
+        }
+        
+        function updateObjects() {
+            const scrollSpeed = 0.9 + score / 22000
+            for (let i = platforms.length - 1; i >= 0; i--) {
+                const p = platforms[i]
+                if (p.type === PLATFORM_TYPES.MOVING) {
+                    p.x += p.vx
+                    if (p.x < 0 || p.x + p.width > WIDTH) p.vx *= -1
+                }
+                if (p.type === PLATFORM_TYPES.DISAPPEARING) {
+                    p.life--
+                    if (p.life <= 0) platforms.splice(i, 1)
+                }
+                p.y += scrollSpeed
+                if (p.y > HEIGHT + 50) platforms.splice(i, 1)
+            }
+            
+            // Fewer platforms + larger gaps at high score
+            let spawnGap = 56 + Math.min(52, Math.floor(score / 1100))
+            if (player.rocketTime > 0) spawnGap = 34
+            
+            if (platforms.length < 13) { // fewer platforms overall
+                const lastY = Math.min(...platforms.map(p => p.y))
+                generatePlatform(lastY - spawnGap)
+            }
+            
+            for (let i = powerups.length - 1; i >= 0; i--) {
+                const pu = powerups[i]
+                pu.y += 2.1
+                pu.life--
+                
+                const dx = player.x - pu.x
+                const dy = (player.y + 12) - pu.y
+                
+                if (player.magnetTime > 0 && dx * dx + dy * dy < 22000) {
+                    pu.x += dx * 0.22
+                    pu.y += dy * 0.22
+                }
+                
+                if (dx * dx + dy * dy < 1200) {
+                    activatePowerup(pu.type)
+                    powerups.splice(i, 1)
+                    continue
+                }
+                if (pu.life < 0) powerups.splice(i, 1)
+            }
+            
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i]
+                p.x += p.vx
+                p.y += p.vy
+                p.vy += 0.2
+                p.life--
+                if (p.life <= 0) particles.splice(i, 1)
+            }
+            
+            for (let i = floatingTexts.length - 1; i >= 0; i--) {
+                const t = floatingTexts[i]
+                t.y += t.vy
+                t.vy *= 0.95
+                t.life--
+                if (t.life <= 0) floatingTexts.splice(i, 1)
+            }
+            
+            // Less intense at very high scores
+            const intensity = moonMode ? 0.7 : 0.35
+            score += 0.35 + intensity
+        }
+        
+        // ====================== MAIN LOOP ======================
+        function update() {
+            if (!gameRunning || paused) return
+            frame++
+            
+            updatePlayer()
+            checkPlatformCollision()
+            updateObjects()
+            spawnPowerup()
+            
+            const currentThreshold = player.rocketTime > 0 ? HEIGHT * 0.22 : SCROLL_THRESHOLD
+            
+            if (player.y < currentThreshold) {
+                const scrollDelta = currentThreshold - player.y
+                player.y = currentThreshold
+                for (let p of platforms) p.y += scrollDelta
+                for (let pu of powerups) pu.y += scrollDelta
+                cameraY += scrollDelta
+                score += Math.floor(scrollDelta * 0.14)
+            }
+            
+            document.getElementById('score-display').textContent = String(Math.floor(score)).padStart(6, '0')
+        }
+        
+        function draw() {
+            ctx.imageSmoothingEnabled = false // crisp forever
+            ctx.clearRect(0, 0, WIDTH, HEIGHT)
+            drawBackground()
+            
+            for (let p of platforms) drawPlatform(p)
+            for (let pu of powerups) drawPowerup(pu)
+            
+            if (player.ghostTime > 0) ctx.globalAlpha = 0.45 + Math.sin(frame * 0.42) * 0.35
+            drawPlayer()
+            ctx.globalAlpha = 1
+            
+            for (let p of particles) {
+                const alpha = p.life / p.maxLife
+                ctx.globalAlpha = alpha
+                ctx.shadowBlur = 8 // reduced blur
+                ctx.shadowColor = p.color
+                ctx.fillStyle = p.color
+                ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size)
+            }
+            ctx.globalAlpha = 1
+            ctx.shadowBlur = 0
+            
+            ctx.textAlign = 'center'
+            ctx.font = 'bold 18px Press Start 2P'
+            for (let t of floatingTexts) {
+                ctx.globalAlpha = t.life / 58
+                ctx.fillStyle = t.color
+                ctx.shadowBlur = 12
+                ctx.shadowColor = t.color
+                ctx.fillText(t.text, t.x, t.y)
+            }
+            ctx.globalAlpha = 1
+            ctx.shadowBlur = 0
+            ctx.textAlign = 'left'
+            
+            if (moonMode && Math.random() > 0.94) {
+                ctx.globalAlpha = 0.18
+                ctx.fillStyle = '#c300ff'
+                ctx.fillRect(0, 0, WIDTH, HEIGHT)
+                ctx.globalAlpha = 1
+            }
+            
+            if (shakeAmount > 0) {
+                const dx = (Math.random() - 0.5) * shakeAmount
+                const dy = (Math.random() - 0.5) * shakeAmount
+                ctx.save()
+                ctx.translate(dx, dy)
+                shakeAmount *= 0.88
+            }
+        }
+        
+        function gameLoop() {
+            update()
+            draw()
+            requestAnimationFrame(gameLoop)
+        }
+        
+        // ====================== GAME STATE ======================
+        function initGame() {
+            player = {
+                x: WIDTH / 2,
+                y: HEIGHT * 0.58,
+                vx: 0,
+                vy: -9,
+                rocketTime: 0,
+                jetpackTime: 0,
+                hyperTime: 0,
+                shieldTime: 0,
+                ghostTime: 0,
+                magnetTime: 0,
+                tripleLeft: 0
+            }
+            cameraY = 0
+            score = 0
+            combo = 0
+            moonMode = false
+            platforms = []
+            particles = []
+            powerups = []
+            floatingTexts = []
+            
+            initPlatforms()
+            initStars()
+            createExplosion(player.x, player.y + 32, 32, 170)
+        }
+        
+        function startGame() {
+            const menu = document.getElementById('menu-screen')
+            menu.style.opacity = 0
+            setTimeout(() => {
+                document.getElementById('overlay').style.opacity = 0
+                setTimeout(() => {
+                    document.getElementById('overlay').style.display = 'none'
+                    document.getElementById('menu-screen').style.opacity = 1
+                    document.getElementById('menu-screen').classList.remove('active')
+                    
+                    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)()
+                    
+                    initGame()
+                    gameRunning = true
+                    paused = false
+                    document.getElementById('hud').style.display = 'flex'
+                }, 260)
+            }, 250)
+        }
+        
+        function gameOver() {
+            gameRunning = false
+            const addedLifetime = Math.floor(score)
+            saveData.lifetime += addedLifetime
+            
+            // Dynamic leaderboard
+            let newHigh = false
+            if (score > saveData.highscore) {
+                saveData.highscore = Math.floor(score)
+                newHigh = true
+                document.getElementById('new-high-badge').style.display = 'block'
+            }
+            
+            // Add to leaderboard if top 10
+            const lowest = saveData.leaderboard[saveData.leaderboard.length - 1] ? saveData.leaderboard[saveData.leaderboard.length - 1].score : 0
+            if (score > lowest || saveData.leaderboard.length < 10) {
+                const name = prompt("NEW HIGH SCORE!\nEnter your name for the leaderboard:", saveData.username) || saveData.username
+                saveData.leaderboard.push({name: name.substring(0,8), score: Math.floor(score)})
+                saveData.leaderboard.sort((a,b) => b.score - a.score)
+                saveData.leaderboard = saveData.leaderboard.slice(0,10)
+            }
+            
+            for (let i = 0; i < CAP_MILESTONES.length; i++) {
+                if (saveData.lifetime >= CAP_MILESTONES[i]) saveData.unlockedCaps[i] = true
+            }
+            localStorage.setItem('$PMUSH_COSMIC_LEAP', JSON.stringify(saveData))
+            
+            document.getElementById('overlay').style.display = 'flex'
+            document.getElementById('overlay').style.opacity = 1
+            const goScreen = document.getElementById('gameover-screen')
+            goScreen.classList.add('active')
+            
+            document.getElementById('final-score').textContent = String(Math.floor(score)).padStart(6, '0')
+            document.getElementById('final-high').textContent = String(Math.floor(saveData.highscore)).padStart(6, '0')
+            document.getElementById('final-lifetime-add').textContent = '+' + addedLifetime
+            
+            if (newHigh) {
+                for (let i = 0; i < 90; i++) {
+                    setTimeout(() => createParticle(Math.random() * WIDTH, Math.random() * 140, (Math.random() - 0.5) * 13, 4 + Math.random() * 9, 130, ['#00f7ff', '#c300ff', '#00ff9d'][Math.floor(Math.random() * 3)]), i * 3)
+                }
+            }
+        }
+        
+        function restartGame() {
+            const goScreen = document.getElementById('gameover-screen')
+            goScreen.classList.remove('active')
+            document.getElementById('overlay').style.opacity = 0
+            setTimeout(() => {
+                document.getElementById('overlay').style.display = 'none'
+                initGame()
+                gameRunning = true
+                document.getElementById('new-high-badge').style.display = 'none'
+            }, 300)
+        }
+        
+        function togglePause() {
+            if (!gameRunning) return
+            paused = !paused
+            if (paused) {
+                document.getElementById('pause-screen').classList.add('active')
+                document.getElementById('overlay').style.display = 'flex'
+                document.getElementById('overlay').style.opacity = 1
+            } else resumeGame()
+        }
+        
+        function resumeGame() {
+            paused = false
+            document.getElementById('pause-screen').classList.remove('active')
+            document.getElementById('overlay').style.opacity = 0
+            setTimeout(() => document.getElementById('overlay').style.display = 'none', 280)
+        }
+        
+        function quitToMenu() {
+            gameRunning = false
+            paused = false
+            document.getElementById('overlay').style.display = 'flex'
+            document.getElementById('overlay').style.opacity = 1
+            document.getElementById('menu-screen').classList.add('active')
+            document.getElementById('pause-screen').classList.remove('active')
+            document.getElementById('gameover-screen').classList.remove('active')
+            document.getElementById('hud').style.display = 'none'
+            updateMenuStats()
+        }
+        
+        function updateMenuStats() {
+            document.getElementById('menu-highscore').textContent = String(Math.floor(saveData.highscore)).padStart(6, '0')
+            document.getElementById('menu-lifetime').textContent = String(Math.floor(saveData.lifetime)).padStart(6, '0')
+            document.getElementById('username-display').textContent = saveData.username
+        }
+        
+        function setUsername() {
+            const newName = prompt("Enter new username (max 8 chars):", saveData.username) || saveData.username
+            saveData.username = newName.substring(0,8).toUpperCase()
+            localStorage.setItem('$PMUSH_COSMIC_LEAP', JSON.stringify(saveData))
+            updateMenuStats()
+        }
+        
+        function showCapsMenu() {
+            document.getElementById('menu-screen').classList.remove('active')
+            const capsScreen = document.getElementById('caps-screen')
+            capsScreen.classList.add('active')
+            
+            const grid = document.getElementById('caps-grid')
+            grid.innerHTML = ''
+            const icons = ['🍄','👑','🌌','🌠','🔥','💎','⭐','⚡','🌈','💲','🌕','🌀']
+            
+            for (let i = 0; i < 12; i++) {
+                const unlocked = saveData.unlockedCaps[i]
+                const div = document.createElement('div')
+                div.style.cssText = `font-size:42px; padding:12px; background:#0a0f2e; border-radius:12px; border:4px solid ${unlocked ? '#00f7ff' : '#333'}; text-align:center; cursor:pointer; opacity:${unlocked ? 1 : 0.3};`
+                div.innerHTML = `<div>${icons[i]}</div><div style="font-size:9px;margin-top:4px;">${i+1}</div>`
+                if (unlocked) div.onclick = () => { saveData.currentCap = i; localStorage.setItem('$PMUSH_COSMIC_LEAP', JSON.stringify(saveData)); hideCapsMenu(); updateMenuStats() }
+                grid.appendChild(div)
+            }
+        }
+        
+        function hideCapsMenu() {
+            document.getElementById('caps-screen').classList.remove('active')
+            document.getElementById('menu-screen').classList.add('active')
+        }
+        
+        function showDailyMenu() {
+            document.getElementById('menu-screen').classList.remove('active')
+            const today = new Date().toISOString().slice(0,10)
+            if (saveData.lastDailyDate !== today) {
+                saveData.dailyStreak++
+                saveData.lastDailyDate = today
+                localStorage.setItem('$PMUSH_COSMIC_LEAP', JSON.stringify(saveData))
+            }
+            document.getElementById('daily-streak').textContent = saveData.dailyStreak
+            document.getElementById('daily-goal').textContent = 'REACH 18,000'
+            document.getElementById('daily-score-text').innerHTML = `YOUR BEST TODAY<br><span style="color:#00ff9d;font-size:22px">∞</span>`
+            document.getElementById('daily-screen').classList.add('active')
+        }
+        
+        function hideDailyMenu() {
+            document.getElementById('daily-screen').classList.remove('active')
+            document.getElementById('menu-screen').classList.add('active')
+        }
+        
+        function startDaily() {
+            hideDailyMenu()
+            startGame()
+        }
+        
+        function showLeaderboard() {
+            document.getElementById('menu-screen').classList.remove('active')
+            const listHTML = saveData.leaderboard.map((entry, i) => {
+                return `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px dashed #00f7ff;"><span>#${i+1} ${entry.name}</span><span style="color:#00f7ff">${String(entry.score).padStart(6,'0')}</span></div>`
+            }).join('')
+            document.getElementById('leaderboard-list').innerHTML = listHTML
+            document.getElementById('leaderboard-screen').classList.add('active')
+        }
+        
+        function hideLeaderboard() {
+            document.getElementById('leaderboard-screen').classList.remove('active')
+            document.getElementById('menu-screen').classList.add('active')
+        }
+        
+        function loadFromLocalStorage() {
+            const saved = localStorage.getItem('$PMUSH_COSMIC_LEAP')
+            if (saved) Object.assign(saveData, JSON.parse(saved))
+            while (saveData.unlockedCaps.length < 12) saveData.unlockedCaps.push(false)
+            saveData.unlockedCaps[0] = true
+        }
+        
+        function setupInput() {
+            window.addEventListener('keydown', e => keys[e.key] = true)
+            window.addEventListener('keyup', e => keys[e.key] = false)
+            
+            canvas.addEventListener('touchstart', e => {
+                e.preventDefault()
+                const touchX = e.changedTouches[0].clientX - canvas.getBoundingClientRect().left
+                if (touchX < WIDTH / 2) touchLeft = true
+                else touchRight = true
+            })
+            
+            canvas.addEventListener('touchend', e => {
+                e.preventDefault()
+                touchLeft = false
+                touchRight = false
+            })
+            
+            canvas.addEventListener('mousedown', e => {
+                const rect = canvas.getBoundingClientRect()
+                const x = e.clientX - rect.left
+                if (x < WIDTH / 2) touchLeft = true
+                else touchRight = true
+            })
+            
+            window.addEventListener('mouseup', () => { touchLeft = false; touchRight = false })
+            
+            if (window.DeviceOrientationEvent) {
+                window.addEventListener('deviceorientation', e => {
+                    if (e.gamma !== null) tilt = Math.max(-1, Math.min(1, e.gamma / 28))
+                })
+            }
+        }
+        
+        function launch() {
+            loadFromLocalStorage()
+            updateMenuStats()
+            canvas.width = WIDTH
+            canvas.height = HEIGHT
+            ctx.imageSmoothingEnabled = false
+            initStars()
+            setupInput()
+            requestAnimationFrame(gameLoop)
+            console.log('%c🚀 $PMUSH COSMIC LEAP – INFINITE ULTIMATE EDITION READY!', 'background:#c300ff;color:#00f7ff;font-size:13px;padding:2px 6px;border-radius:3px')
+        }
+        
+        window.onload = launch
+    </script>
+</body>
+</html>
